@@ -15,6 +15,7 @@
 
 import Foundation
 
+@MainActor
 class ConstraintPuzzleEngine: ObservableObject {
     
     // MARK: - Published Properties

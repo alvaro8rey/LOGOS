@@ -340,12 +340,10 @@ struct DifficultySelector: View {
     private func difficultyCard(difficulty: (level: Int, name: String, description: String, icon: String, color: Color)) -> some View {
         NavigationLink {
             if let userId = authViewModel.user?.id {
-                NonogramGameView(
-                    viewModel: PuzzleViewModel(
-                        puzzleType: puzzleType,
-                        difficulty: difficulty.level,
-                        userId: userId
-                    )
+                PuzzleGameRouter(
+                    puzzleType: puzzleType,
+                    difficulty: difficulty.level,
+                    userId: userId
                 )
             }
         } label: {
@@ -466,6 +464,90 @@ struct PuzzleTypeCardWithProgress: View {
         }
         .padding(20)
         .liquidGlass()
+    }
+}
+
+// MARK: - Puzzle Game Router
+struct PuzzleGameRouter: View {
+    let puzzleType: UserProgress.PuzzleType
+    let difficulty: Int
+    let userId: String
+
+    var body: some View {
+        switch puzzleType {
+        case .constraints:
+            // Nonogram puzzle - IMPLEMENTADO
+            NonogramGameView(
+                viewModel: PuzzleViewModel(
+                    puzzleType: puzzleType,
+                    difficulty: difficulty,
+                    userId: userId
+                )
+            )
+        case .graphs, .binaryStates, .mathematical, .symmetry:
+            // Otros puzzles - PRÓXIMAMENTE
+            ComingSoonPuzzleView(puzzleType: puzzleType)
+        }
+    }
+}
+
+// MARK: - Coming Soon Puzzle View
+struct ComingSoonPuzzleView: View {
+    let puzzleType: UserProgress.PuzzleType
+    @Environment(\.dismiss) var dismiss
+
+    var body: some View {
+        ZStack {
+            Color.logosBackground
+                .ignoresSafeArea()
+
+            VStack(spacing: 32) {
+                // Icon
+                Image(systemName: puzzleType.icon)
+                    .font(.system(size: 80))
+                    .foregroundStyle(Color.primaryGradient)
+
+                // Title
+                VStack(spacing: 12) {
+                    Text(puzzleType.displayName)
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .foregroundColor(.logosTextPrimary)
+
+                    Text("Próximamente")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.logosAccent)
+                }
+
+                // Description
+                Text("Este tipo de puzzle está en desarrollo.\nPronto estará disponible.")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.logosTextSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+
+                // Back button
+                Button {
+                    dismiss()
+                } label: {
+                    Text("Volver")
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.logosPrimary, Color.logosSecondary],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(16)
+                }
+                .padding(.horizontal, 40)
+                .padding(.top, 20)
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
