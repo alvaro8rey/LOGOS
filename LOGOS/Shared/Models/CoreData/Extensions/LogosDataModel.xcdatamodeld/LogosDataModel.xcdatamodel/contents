@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23605" systemVersion="24G419" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+    <entity name="PuzzleHistoryEntity" representedClassName=".PuzzleHistoryEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="completedAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="difficulty" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="hintsUsed" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="id" attributeType="String"/>
+        <attribute name="isSolved" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="lastModified" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="needsSync" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="puzzleType" attributeType="String"/>
+        <attribute name="seed" attributeType="String"/>
+        <attribute name="timeSpent" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="userId" attributeType="String"/>
+    </entity>
+    <entity name="UserEntity" representedClassName=".UserEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="displayName" optional="YES" attributeType="String"/>
+        <attribute name="email" optional="YES" attributeType="String"/>
+        <attribute name="hintsAvailable" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="id" attributeType="String"/>
+        <attribute name="isAnonymous" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isPremium" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="lastModified" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="lastSyncAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="subscriptionExpiresAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="subscriptionType" optional="YES" attributeType="String"/>
+    </entity>
+    <entity name="UserProgressEntity" representedClassName=".UserProgressEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="bestTime" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="completedCount" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="currentDifficulty" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="id" attributeType="String"/>
+        <attribute name="lastModified" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="lastPlayedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="needsSync" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="puzzleType" attributeType="String"/>
+        <attribute name="totalHintsUsed" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="updatedAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="userId" attributeType="String"/>
+    </entity>
+</model>
