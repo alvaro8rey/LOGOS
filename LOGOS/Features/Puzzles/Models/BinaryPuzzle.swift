@@ -185,13 +185,3 @@ struct BinaryPuzzle: Codable {
         return true
     }
 }
-
-// MARK: - Random Extension
-extension SeededRandomGenerator {
-    mutating func shuffle<T>(_ array: inout [T]) {
-        for i in (1..<array.count).reversed() {
-            let j = next(max: i + 1)
-            array.swapAt(i, j)
-        }
-    }
-}

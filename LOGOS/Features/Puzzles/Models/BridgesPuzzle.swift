@@ -131,7 +131,7 @@ struct BridgesPuzzle: Codable {
 }
 
 // MARK: - Seeded Random Generator
-struct SeededRandomGenerator {
+struct SeededRandomGenerator: RandomNumberGenerator {
     private var state: UInt64
 
     init(seed: String) {
@@ -140,8 +140,12 @@ struct SeededRandomGenerator {
         self.state = UInt64(truncatingIfNeeded: hasher.finalize())
     }
 
-    mutating func next(max: Int) -> Int {
+    mutating func next() -> UInt64 {
         state = state &* 6364136223846793005 &+ 1
-        return Int(state % UInt64(max))
+        return state
+    }
+
+    mutating func next(max: Int) -> Int {
+        return Int(next() % UInt64(max))
     }
 }
