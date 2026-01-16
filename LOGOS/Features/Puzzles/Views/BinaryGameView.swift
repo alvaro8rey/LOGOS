@@ -82,6 +82,7 @@ struct BinaryGameView: View {
                 HStack(spacing: 2) {
                     ForEach(0..<puzzle.gridSize, id: \.self) { col in
                         cellView(row: row, col: col, size: cellSize, puzzle: puzzle)
+                            .id("\(row)-\(col)")  // Unique ID for each cell
                     }
                 }
             }

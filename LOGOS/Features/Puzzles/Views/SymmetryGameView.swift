@@ -84,6 +84,7 @@ struct SymmetryGameView: View {
                 HStack(spacing: 1) {
                     ForEach(0..<puzzle.gridSize, id: \.self) { col in
                         cellView(row: row, col: col, size: cellSize, puzzle: puzzle)
+                            .id("\(row)-\(col)")  // Unique ID for each cell
                     }
                 }
             }
