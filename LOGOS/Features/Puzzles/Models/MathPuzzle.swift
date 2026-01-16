@@ -14,9 +14,14 @@ struct MathPuzzle: Codable {
     let solution: [[Int]]
     let cages: [Cage]
 
+    struct CellPosition: Codable, Equatable {
+        let row: Int
+        let col: Int
+    }
+
     struct Cage: Codable, Identifiable {
         let id: String
-        let cells: [(row: Int, col: Int)]
+        let cells: [CellPosition]
         let target: Int
         let operation: Operation
 
@@ -32,7 +37,7 @@ struct MathPuzzle: Codable {
 
         init(cells: [(Int, Int)], target: Int, operation: Operation) {
             self.id = UUID().uuidString
-            self.cells = cells
+            self.cells = cells.map { CellPosition(row: $0.0, col: $0.1) }
             self.target = target
             self.operation = operation
         }
