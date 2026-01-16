@@ -35,11 +35,33 @@ struct MathPuzzle: Codable {
             var symbol: String { return self.rawValue }
         }
 
+        // Inicializador para crear cages
         init(cells: [(Int, Int)], target: Int, operation: Operation) {
             self.id = UUID().uuidString
             self.cells = cells.map { CellPosition(row: $0.0, col: $0.1) }
             self.target = target
             self.operation = operation
+        }
+
+        // MARK: - Codable
+        enum CodingKeys: String, CodingKey {
+            case id, cells, target, operation
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decode(String.self, forKey: .id)
+            cells = try container.decode([CellPosition].self, forKey: .cells)
+            target = try container.decode(Int.self, forKey: .target)
+            operation = try container.decode(Operation.self, forKey: .operation)
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(id, forKey: .id)
+            try container.encode(cells, forKey: .cells)
+            try container.encode(target, forKey: .target)
+            try container.encode(operation, forKey: .operation)
         }
     }
 
