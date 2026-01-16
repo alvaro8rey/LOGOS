@@ -53,12 +53,8 @@ class AuthViewModel: ObservableObject {
     // MARK: - Authentication Status
     func checkAuthenticationStatus() {
         authService.checkAuthStatus()
-        
-        if !isAuthenticated {
-            Task {
-                await signInAnonymously()
-            }
-        }
+
+        // NO hacer login anónimo automático - el usuario debe elegir registrarse o iniciar sesión
     }
     
     // MARK: - Sign In Anonymously
@@ -167,27 +163,23 @@ class AuthViewModel: ObservableObject {
     
     // MARK: - Sync with Supabase
     private func syncUserWithSupabase(_ firebaseUser: FirebaseAuth.User) async {
-        do {
-            if let existingUser = try await supabaseService.fetchUser(userId: firebaseUser.uid) {
-                self.user = existingUser
-            } else {
-                let newUser = User(
-                    id: firebaseUser.uid,
-                    email: firebaseUser.email,
-                    displayName: firebaseUser.displayName,
-                    isAnonymous: firebaseUser.isAnonymous
-                )
-                
-                try await supabaseService.upsertUser(newUser)
-                self.user = newUser
+        // Crear usuario local siempre
+        let newUser = User(
+            id: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            isAnonymous: firebaseUser.isAnonymous
+        )
+        self.user = newUser
+
+        // Intentar sincronizar con Supabase de forma opcional (sin bloquear si falla)
+        Task.detached(priority: .background) {
+            do {
+                try await self.supabaseService.upsertUser(newUser)
+                print("✅ Usuario sincronizado con Supabase")
+            } catch {
+                print("⚠️ No se pudo sincronizar con Supabase (opcional): \(error.localizedDescription)")
             }
-        } catch {
-            self.user = User(
-                id: firebaseUser.uid,
-                email: firebaseUser.email,
-                displayName: firebaseUser.displayName,
-                isAnonymous: firebaseUser.isAnonymous
-            )
         }
     }
     

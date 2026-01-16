@@ -16,7 +16,7 @@ struct ContentView: View {
             if authViewModel.isAuthenticated {
                 mainTabView
             } else {
-                loadingView
+                AuthView()
             }
         }
     }
