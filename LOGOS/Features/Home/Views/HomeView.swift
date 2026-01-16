@@ -502,7 +502,16 @@ struct PuzzleGameRouter: View {
                     userId: userId
                 )
             )
-        case .mathematical, .symmetry:
+        case .symmetry:
+            // Symmetry puzzle - IMPLEMENTADO
+            SymmetryGameView(
+                viewModel: SymmetryPuzzleViewModel(
+                    puzzleType: puzzleType,
+                    difficulty: difficulty,
+                    userId: userId
+                )
+            )
+        case .mathematical:
             // Próximamente
             ComingSoonPuzzleView(puzzleType: puzzleType)
         }
