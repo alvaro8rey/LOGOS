@@ -484,8 +484,26 @@ struct PuzzleGameRouter: View {
                     userId: userId
                 )
             )
-        case .graphs, .binaryStates, .mathematical, .symmetry:
-            // Otros puzzles - PRÓXIMAMENTE
+        case .graphs:
+            // Bridges puzzle - IMPLEMENTADO
+            BridgesGameView(
+                viewModel: BridgesPuzzleViewModel(
+                    puzzleType: puzzleType,
+                    difficulty: difficulty,
+                    userId: userId
+                )
+            )
+        case .binaryStates:
+            // Binary puzzle - IMPLEMENTADO
+            BinaryGameView(
+                viewModel: BinaryPuzzleViewModel(
+                    puzzleType: puzzleType,
+                    difficulty: difficulty,
+                    userId: userId
+                )
+            )
+        case .mathematical, .symmetry:
+            // Próximamente
             ComingSoonPuzzleView(puzzleType: puzzleType)
         }
     }

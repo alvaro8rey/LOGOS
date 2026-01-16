@@ -151,25 +151,25 @@ struct NonogramGameView: View {
     // MARK: - Cell View
     private func cellView(row: Int, col: Int, size: CGFloat) -> some View {
         let state = viewModel.puzzleEngine.userGrid[row][col]
-        
-        return Button {
-            viewModel.puzzleEngine.toggleCell(row: row, col: col)
-        } label: {
-            ZStack {
-                Rectangle()
-                    .fill(cellColor(for: state))
-                    .frame(width: size, height: size)
-                
-                Rectangle()
-                    .stroke(Color.logosTextTertiary.opacity(0.3), lineWidth: 1)
-                    .frame(width: size, height: size)
-                
-                if state == .marked {
-                    Image(systemName: "xmark")
-                        .font(.system(size: size * 0.5, weight: .bold))
-                        .foregroundColor(.logosTextSecondary)
-                }
+
+        return ZStack {
+            Rectangle()
+                .fill(cellColor(for: state))
+                .frame(width: size, height: size)
+
+            Rectangle()
+                .stroke(Color.logosTextTertiary.opacity(0.3), lineWidth: 1)
+                .frame(width: size, height: size)
+
+            if state == .marked {
+                Image(systemName: "xmark")
+                    .font(.system(size: size * 0.5, weight: .bold))
+                    .foregroundColor(.logosTextSecondary)
             }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            viewModel.puzzleEngine.toggleCell(row: row, col: col)
         }
         .disabled(viewModel.puzzleEngine.isCompleted)
     }

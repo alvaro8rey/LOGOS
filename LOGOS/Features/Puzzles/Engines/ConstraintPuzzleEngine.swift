@@ -64,7 +64,11 @@ class ConstraintPuzzleEngine: ObservableObject {
     // MARK: - Toggle Cell
     func toggleCell(row: Int, col: Int) {
         guard !isCompleted else { return }
-        
+        guard let puzzle = currentPuzzle else { return }
+        guard row >= 0 && row < puzzle.gridSize && col >= 0 && col < puzzle.gridSize else { return }
+
+        objectWillChange.send()
+
         switch userGrid[row][col] {
         case .empty:
             userGrid[row][col] = .filled
@@ -73,7 +77,7 @@ class ConstraintPuzzleEngine: ObservableObject {
         case .marked:
             userGrid[row][col] = .empty
         }
-        
+
         // Verificar si está completo
         checkCompletion()
     }
