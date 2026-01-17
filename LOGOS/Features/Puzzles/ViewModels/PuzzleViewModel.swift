@@ -20,36 +20,44 @@ import Combine
 class PuzzleViewModel: ObservableObject {
 
     // MARK: - Published Properties
-    @ObservedObject var puzzleEngine: ConstraintPuzzleEngine
+    let puzzleEngine: ConstraintPuzzleEngine
     @Published var showingHintSheet = false
     @Published var selectedHint: Hint?
     @Published var showingCompletionSheet = false
     @Published var canUseHint = true
     @Published var freeHintsRemaining = 1
-    
+
     // MARK: - Properties
     let puzzleType: UserProgress.PuzzleType
     let difficulty: Int
     private let userId: String
-    
+
     // MARK: - Services
     private let syncService = SyncService.shared
-    
+    private var cancellables = Set<AnyCancellable>()
+
     // MARK: - Initialization
     init(puzzleType: UserProgress.PuzzleType, difficulty: Int, userId: String) {
         self.puzzleType = puzzleType
         self.difficulty = difficulty
         self.userId = userId
         self.puzzleEngine = ConstraintPuzzleEngine()
-        
+
         // Generar puzzle
         puzzleEngine.generatePuzzle(difficulty: difficulty)
-        
+
         setupObservers()
     }
-    
+
     // MARK: - Setup Observers
     private func setupObservers() {
+        // Reenviar cambios del engine a este ViewModel
+        puzzleEngine.objectWillChange
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
+
         // Observar cuando se complete el puzzle
         puzzleEngine.$isCompleted
             .sink { [weak self] isCompleted in
@@ -59,8 +67,6 @@ class PuzzleViewModel: ObservableObject {
             }
             .store(in: &cancellables)
     }
-    
-    private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Use Hint
     func useHint(_ hint: Hint) {

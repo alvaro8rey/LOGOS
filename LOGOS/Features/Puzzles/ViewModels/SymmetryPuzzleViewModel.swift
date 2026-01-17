@@ -8,7 +8,7 @@ import Combine
 
 @MainActor
 class SymmetryPuzzleViewModel: ObservableObject {
-    @ObservedObject var puzzleEngine: SymmetryPuzzleEngine
+    let puzzleEngine: SymmetryPuzzleEngine
     @Published var showingCompletionSheet = false
 
     let puzzleType: UserProgress.PuzzleType
@@ -28,6 +28,13 @@ class SymmetryPuzzleViewModel: ObservableObject {
     }
 
     private func setupObservers() {
+        // Reenviar cambios del engine a este ViewModel
+        puzzleEngine.objectWillChange
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
+
         puzzleEngine.$isCompleted
             .sink { [weak self] isCompleted in
                 if isCompleted {

@@ -12,7 +12,7 @@ import Combine
 class BridgesPuzzleViewModel: ObservableObject {
 
     // MARK: - Published Properties
-    @ObservedObject var puzzleEngine: BridgesPuzzleEngine
+    let puzzleEngine: BridgesPuzzleEngine
     @Published var showingCompletionSheet = false
 
     // MARK: - Properties
@@ -22,6 +22,7 @@ class BridgesPuzzleViewModel: ObservableObject {
 
     // MARK: - Services
     private let syncService = SyncService.shared
+    private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Initialization
     init(puzzleType: UserProgress.PuzzleType, difficulty: Int, userId: String) {
@@ -37,6 +38,13 @@ class BridgesPuzzleViewModel: ObservableObject {
 
     // MARK: - Setup Observers
     private func setupObservers() {
+        // Reenviar cambios del engine a este ViewModel
+        puzzleEngine.objectWillChange
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
+
         puzzleEngine.$isCompleted
             .sink { [weak self] isCompleted in
                 if isCompleted {
@@ -45,8 +53,6 @@ class BridgesPuzzleViewModel: ObservableObject {
             }
             .store(in: &cancellables)
     }
-
-    private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Handle Puzzle Completion
     private func handlePuzzleCompletion() {
