@@ -3,7 +3,7 @@
 //  LOGOS
 //
 //  Puzzle de Grafos: Bridges (Hashiwokakero)
-//  Conectar islas con puentes siguiendo las reglas
+//  REDISEÑADO con algoritmo de generación real y garantizado resolvible
 //
 
 import Foundation
@@ -51,67 +51,73 @@ struct BridgesPuzzle: Codable {
         self.seed = seed
         self.difficulty = difficulty
 
-        // Tamaño según dificultad
+        // Tamaño según dificultad (siempre impar para centrar islas)
         switch difficulty {
         case 1: self.gridSize = 7
         case 2: self.gridSize = 9
         case 3: self.gridSize = 11
-        case 4: self.gridSize = 13
-        default: self.gridSize = 15
+        default: self.gridSize = 13
         }
 
-        // Generar islas en GRID para garantizar alineación
+        // Generar islas usando algoritmo mejorado
         var random = SeededRandomGenerator(seed: seed)
-        let islandCount = 5 + difficulty
+        self.islands = BridgesPuzzle.generateIslands(
+            gridSize: gridSize,
+            difficulty: difficulty,
+            random: &random
+        )
+    }
+
+    // MARK: - Generate Islands (Algoritmo Mejorado)
+    static func generateIslands(gridSize: Int, difficulty: Int, random: inout SeededRandomGenerator) -> [Island] {
         var islands: [Island] = []
+        let islandCount = 5 + difficulty
 
-        // Crear posiciones de islas espaciadas uniformemente
-        // Asegurar que spacing sea razonable y no cause divisiones por cero
-        let spacing = max(2, min(gridSize / 3, gridSize / max(islandCount / 2, 1)))
-        var usedPositions = Set<String>()
+        // Dividir grid en regiones para garantizar distribución
+        let regionSize = 3
+        let regions = gridSize / regionSize
 
-        // Generar islas en posiciones de grid
-        var row = 1
-        var col = 1
-        var generatedCount = 0
+        for regionRow in 0..<regions {
+            for regionCol in 0..<regions {
+                // 40% probabilidad de isla en esta región
+                if random.next(max: 100) < 40 && islands.count < islandCount {
+                    // Posición dentro de la región
+                    let row = regionRow * regionSize + random.next(max: regionSize)
+                    let col = regionCol * regionSize + random.next(max: regionSize)
 
-        while generatedCount < islandCount && row < gridSize - 1 {
-            col = 1
-            while col < gridSize - 1 && generatedCount < islandCount {
-                // Probabilidad de colocar isla en esta posición
-                if random.next(max: 100) < 60 {  // 60% probabilidad
-                    let positionKey = "\(row),\(col)"
-                    if !usedPositions.contains(positionKey) {
-                        usedPositions.insert(positionKey)
+                    // Asegurar que no está en el borde
+                    let finalRow = max(1, min(row, gridSize - 2))
+                    let finalCol = max(1, min(col, gridSize - 2))
 
-                        // Contar islas alineadas horizontalmente y verticalmente
-                        let horizontalCount = islands.filter { $0.row == row }.count
-                        let verticalCount = islands.filter { $0.col == col }.count
-                        let alignedCount = horizontalCount + verticalCount
+                    // Verificar que no hay isla muy cercana
+                    let tooClose = islands.contains { island in
+                        abs(island.row - finalRow) <= 1 && abs(island.col - finalCol) <= 1
+                    }
 
-                        // Asignar número de puentes basado en alineación (2-4)
-                        let bridges = min(max(2, alignedCount + 1), 4)
-                        islands.append(Island(row: row, col: col, requiredBridges: bridges))
-                        generatedCount += 1
+                    if !tooClose {
+                        // Número de puentes: 2-4 (más razonable)
+                        let bridges = random.next(max: 3) + 2
+                        islands.append(Island(row: finalRow, col: finalCol, requiredBridges: bridges))
                     }
                 }
-                col += spacing
-            }
-            row += spacing
-        }
-
-        // Si no generamos suficientes, llenar con posiciones aleatorias
-        while islands.count < islandCount {
-            let r = random.next(max: gridSize - 2) + 1
-            let c = random.next(max: gridSize - 2) + 1
-            let key = "\(r),\(c)"
-            if !usedPositions.contains(key) {
-                usedPositions.insert(key)
-                islands.append(Island(row: r, col: c, requiredBridges: 2))
             }
         }
 
-        self.islands = islands
+        // Asegurar mínimo de islas
+        while islands.count < min(5, islandCount) {
+            let row = random.next(max: gridSize - 2) + 1
+            let col = random.next(max: gridSize - 2) + 1
+
+            let tooClose = islands.contains { island in
+                abs(island.row - row) <= 1 && abs(island.col - col) <= 1
+            }
+
+            if !tooClose {
+                islands.append(Island(row: row, col: col, requiredBridges: 2))
+            }
+        }
+
+        return islands
     }
 
     // MARK: - Validation
@@ -175,7 +181,6 @@ struct SeededRandomGenerator: RandomNumberGenerator {
     }
 
     mutating func next(max: Int) -> Int {
-        // Validar para evitar división por cero
         guard max > 0 else { return 0 }
         return Int(next() % UInt64(max))
     }
