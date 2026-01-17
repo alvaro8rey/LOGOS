@@ -22,7 +22,8 @@ class AuthViewModel: ObservableObject {
     // MARK: - Services
     private let authService = AuthService.shared
     private let supabaseService = SupabaseService.shared
-    
+    private let syncService = SyncService.shared
+
     // MARK: - Private Properties
     private var cancellables = Set<AnyCancellable>()
     
