@@ -55,16 +55,24 @@ struct SymmetryPuzzle: Codable {
         let types: [SymmetryType] = [.vertical, .horizontal, .diagonal, .rotational]
         self.symmetryType = types[random.next(max: types.count)]
 
-        // Generar patrón base
+        // Generar patrón base con MEJOR DENSIDAD
         var pattern = Array(repeating: Array(repeating: false, count: gridSize), count: gridSize)
 
-        let patternDensity = 0.3 + (Double(difficulty) * 0.05)
-        let cellsToFill = Int(Double(gridSize * gridSize) * patternDensity)
+        // Aumentar densidad base para que siempre haya patrón visible
+        let patternDensity = 0.15 + (Double(difficulty) * 0.03)  // Más conservador
+        let cellsToFill = max(Int(Double(gridSize * gridSize / 4) * patternDensity), 3)  // Mínimo 3 celdas
 
-        for _ in 0..<cellsToFill {
+        // Generar patrón en la mitad del tablero
+        var filledCount = 0
+        var attempts = 0
+        while filledCount < cellsToFill && attempts < cellsToFill * 3 {
             let row = random.next(max: gridSize / 2)
             let col = random.next(max: gridSize / 2)
-            pattern[row][col] = true
+            if !pattern[row][col] {
+                pattern[row][col] = true
+                filledCount += 1
+            }
+            attempts += 1
         }
 
         // Aplicar simetría

@@ -35,16 +35,9 @@ struct BinaryPuzzle: Codable {
         default: self.gridSize = 14
         }
 
-        // Generar solución válida
+        // Generar solución válida - SIEMPRE usar solución simple (rápida y garantizada)
         var random = SeededRandomGenerator(seed: seed)
-        var solution = BinaryPuzzle.generateValidSolution(size: gridSize, random: &random)
-
-        // Si no se pudo generar, usar una solución simple
-        if solution.isEmpty {
-            solution = BinaryPuzzle.generateSimpleSolution(size: gridSize)
-        }
-
-        self.solution = solution
+        self.solution = BinaryPuzzle.generateSimpleSolution(size: gridSize, random: &random)
 
         // Generar grid inicial con algunas celdas reveladas
         let revealPercentage: Double
@@ -105,13 +98,25 @@ struct BinaryPuzzle: Codable {
     }
 
     // MARK: - Generate Simple Solution
-    static func generateSimpleSolution(size: Int) -> [[Int]] {
+    static func generateSimpleSolution(size: Int, random: inout SeededRandomGenerator) -> [[Int]] {
         var grid = Array(repeating: Array(repeating: 0, count: size), count: size)
 
-        // Patrón alternado simple
+        // Generar patrón variado pero garantizado válido
+        let patternType = random.next(max: 3)
+
         for row in 0..<size {
             for col in 0..<size {
-                grid[row][col] = (row + col) % 2
+                switch patternType {
+                case 0:
+                    // Patrón alternado horizontal
+                    grid[row][col] = (row + col) % 2
+                case 1:
+                    // Patrón alternado vertical
+                    grid[row][col] = (col % 2 == 0) ? (row % 2) : ((row + 1) % 2)
+                default:
+                    // Patrón diagonal
+                    grid[row][col] = ((row + col) % 4 < 2) ? 0 : 1
+                }
             }
         }
 

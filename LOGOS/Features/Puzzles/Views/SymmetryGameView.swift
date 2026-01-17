@@ -92,9 +92,9 @@ struct SymmetryGameView: View {
     private func symmetryGrid(puzzle: SymmetryPuzzle) -> some View {
         let cellSize: CGFloat = getCellSize(gridSize: puzzle.gridSize)
 
-        return VStack(spacing: 1) {
+        return VStack(spacing: 2) {
             ForEach(0..<puzzle.gridSize, id: \.self) { row in
-                HStack(spacing: 1) {
+                HStack(spacing: 2) {
                     ForEach(0..<puzzle.gridSize, id: \.self) { col in
                         cellView(row: row, col: col, size: cellSize, puzzle: puzzle)
                             .id("\(row)-\(col)")  // Unique ID for each cell
@@ -115,10 +115,15 @@ struct SymmetryGameView: View {
                 .fill(cellColor(for: state, isInitial: isInitial))
                 .frame(width: size, height: size)
 
+            // Borde SIEMPRE visible
+            Rectangle()
+                .stroke(Color.logosTextTertiary.opacity(0.3), lineWidth: 1)
+                .frame(width: size, height: size)
+
             // Borde más grueso para celdas iniciales
             if isInitial {
                 Rectangle()
-                    .stroke(Color.logosPrimary.opacity(0.4), lineWidth: 2)
+                    .stroke(Color.logosPrimary, lineWidth: 3)
                     .frame(width: size, height: size)
             }
 
@@ -138,16 +143,18 @@ struct SymmetryGameView: View {
 
     private func cellColor(for state: SymmetryPuzzle.CellState, isInitial: Bool) -> Color {
         if isInitial {
-            // Celdas iniciales SIEMPRE claramente visibles
-            // Rellenas: azul brillante, Vacías: gris visible con borde
-            return state == .filled ? Color.logosPrimary.opacity(0.9) : Color.logosTextTertiary.opacity(0.2)
+            // Celdas iniciales CLARAMENTE VISIBLES
+            // Rellenas: azul muy brillante
+            // Vacías: gris más oscuro para que se vea
+            return state == .filled ? Color.logosPrimary : Color.gray.opacity(0.3)
         }
 
+        // Celdas editables por el usuario
         switch state {
         case .empty:
             return Color.logosCard
         case .filled:
-            return Color.logosSecondary.opacity(0.6)
+            return Color.logosSecondary.opacity(0.7)
         case .marked:
             return Color.logosCard
         }

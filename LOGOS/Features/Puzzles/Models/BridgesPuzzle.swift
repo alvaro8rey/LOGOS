@@ -60,34 +60,53 @@ struct BridgesPuzzle: Codable {
         default: self.gridSize = 15
         }
 
-        // Generar islas ALINEADAS en filas y columnas
+        // Generar islas en GRID para garantizar alineación
         var random = SeededRandomGenerator(seed: seed)
-        let islandCount = 5 + (difficulty * 2)
+        let islandCount = 5 + difficulty
         var islands: [Island] = []
 
-        // Crear conjunto de filas y columnas para alinear islas
+        // Crear posiciones de islas espaciadas uniformemente
+        let spacing = max(2, gridSize / (islandCount / 2))
         var usedPositions = Set<String>()
 
-        for _ in 0..<islandCount {
-            var row: Int
-            var col: Int
-            var attempts = 0
-            var positionKey: String
+        // Generar islas en posiciones de grid
+        var row = 1
+        var col = 1
+        var generatedCount = 0
 
-            repeat {
-                row = random.next(max: gridSize)
-                col = random.next(max: gridSize)
-                positionKey = "\(row),\(col)"
-                attempts += 1
-            } while usedPositions.contains(positionKey) && attempts < 100
+        while generatedCount < islandCount && row < gridSize - 1 {
+            col = 1
+            while col < gridSize - 1 && generatedCount < islandCount {
+                // Probabilidad de colocar isla en esta posición
+                if random.next(max: 100) < 60 {  // 60% probabilidad
+                    let positionKey = "\(row),\(col)"
+                    if !usedPositions.contains(positionKey) {
+                        usedPositions.insert(positionKey)
 
-            if attempts < 100 {
-                usedPositions.insert(positionKey)
+                        // Contar islas alineadas horizontalmente y verticalmente
+                        let horizontalCount = islands.filter { $0.row == row }.count
+                        let verticalCount = islands.filter { $0.col == col }.count
+                        let alignedCount = horizontalCount + verticalCount
 
-                // Asignar puentes basado en cuántas conexiones son posibles
-                // Empezar con 2-4 puentes (más razonable que 1-7)
-                let bridges = (random.next(max: 3) + 2)  // 2-4 puentes
-                islands.append(Island(row: row, col: col, requiredBridges: bridges))
+                        // Asignar número de puentes basado en alineación (2-4)
+                        let bridges = min(max(2, alignedCount + 1), 4)
+                        islands.append(Island(row: row, col: col, requiredBridges: bridges))
+                        generatedCount += 1
+                    }
+                }
+                col += spacing
+            }
+            row += spacing
+        }
+
+        // Si no generamos suficientes, llenar con posiciones aleatorias
+        while islands.count < islandCount {
+            let r = random.next(max: gridSize - 2) + 1
+            let c = random.next(max: gridSize - 2) + 1
+            let key = "\(r),\(c)"
+            if !usedPositions.contains(key) {
+                usedPositions.insert(key)
+                islands.append(Island(row: r, col: c, requiredBridges: 2))
             }
         }
 
