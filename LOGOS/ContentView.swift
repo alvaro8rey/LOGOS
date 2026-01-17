@@ -10,11 +10,21 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var selectedTab = 0
-    
+    @AppStorage("has_seen_onboarding") private var hasSeenOnboarding = false
+    @State private var showOnboarding = false
+
     var body: some View {
         Group {
             if authViewModel.isAuthenticated {
                 mainTabView
+                    .onAppear {
+                        if !hasSeenOnboarding {
+                            showOnboarding = true
+                        }
+                    }
+                    .sheet(isPresented: $showOnboarding) {
+                        OnboardingView()
+                    }
             } else {
                 AuthView()
             }

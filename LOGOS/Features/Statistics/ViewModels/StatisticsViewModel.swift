@@ -35,7 +35,11 @@ class StatisticsViewModel: ObservableObject {
     
     // Por tipo de puzzle
     @Published var progressByType: [UserProgress.PuzzleType: ProgressStats] = [:]
-    
+
+    // Datos para gráficos
+    @Published var last7DaysActivity: [DayActivity] = []
+    @Published var heatmapData: [Int] = []
+
     // MARK: - Services
     private let syncService = SyncService.shared
     private let supabaseService = SupabaseService.shared
@@ -52,6 +56,13 @@ class StatisticsViewModel: ObservableObject {
         var averageTime: TimeInterval
         var bestTime: TimeInterval?
         var currentDifficulty: Int
+    }
+
+    struct DayActivity: Identifiable {
+        let id = UUID()
+        let date: Date
+        let dayName: String
+        let count: Int
     }
     
     // MARK: - Load Data
@@ -100,6 +111,8 @@ class StatisticsViewModel: ObservableObject {
         calculateGlobalStats()
         calculateProgressByType()
         calculateStreaks()
+        calculateActivityGraphData()
+        calculateHeatmapData()
     }
     
     // MARK: - Calculate Global Stats
@@ -197,11 +210,75 @@ class StatisticsViewModel: ObservableObject {
     // MARK: - Get Completion Percentage for Type
     func getCompletionPercentage(for type: UserProgress.PuzzleType) -> Int {
         guard let stats = progressByType[type] else { return 0 }
-        
+
         // Calcular basándose en la dificultad actual
         // Por ejemplo: 10 puzzles por nivel, 5 niveles = 50 total
         let totalPuzzles = stats.currentDifficulty * 10
         let percentage = (Double(stats.completed) / Double(totalPuzzles)) * 100
         return min(Int(percentage), 100)
+    }
+
+    // MARK: - Calculate Activity Graph Data
+    private func calculateActivityGraphData() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        var activityData: [DayActivity] = []
+
+        for dayOffset in (0..<7).reversed() {
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) else { continue }
+            let endOfDay = calendar.date(byAdding: .day, value: 1, to: date) ?? date
+
+            // Contar puzzles completados en este día
+            let count = puzzleHistory.filter { puzzle in
+                puzzle.completedAt >= date && puzzle.completedAt < endOfDay && puzzle.isSolved
+            }.count
+
+            // Nombre del día (abreviado)
+            let dateFormatter = DateFormatter()
+            dateFormatter.locale = Locale(identifier: "es_ES")
+            dateFormatter.dateFormat = "EEE"
+            let dayName = dateFormatter.string(from: date).capitalized
+
+            activityData.append(DayActivity(date: date, dayName: dayName, count: count))
+        }
+
+        last7DaysActivity = activityData
+    }
+
+    // MARK: - Calculate Heatmap Data
+    private func calculateHeatmapData() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        var heatmap: [Int] = []
+
+        // Últimas 4 semanas (28 días)
+        for dayOffset in (0..<28).reversed() {
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) else {
+                heatmap.append(0)
+                continue
+            }
+            let endOfDay = calendar.date(byAdding: .day, value: 1, to: date) ?? date
+
+            // Contar puzzles completados en este día
+            let count = puzzleHistory.filter { puzzle in
+                puzzle.completedAt >= date && puzzle.completedAt < endOfDay && puzzle.isSolved
+            }.count
+
+            // Convertir a nivel de actividad (0-4)
+            let level: Int
+            switch count {
+            case 0: level = 0
+            case 1...2: level = 1
+            case 3...4: level = 2
+            case 5...7: level = 3
+            default: level = 4
+            }
+
+            heatmap.append(level)
+        }
+
+        heatmapData = heatmap
     }
 }
