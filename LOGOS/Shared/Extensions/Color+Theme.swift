@@ -41,7 +41,13 @@ extension Color {
         startPoint: .leading,
         endPoint: .trailing
     )
-    
+
+    static let secondaryGradient = LinearGradient(
+        colors: [Color.logosAccent, Color.logosPrimary],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+
     static let glassGradient = LinearGradient(
         colors: [
             Color.white.opacity(0.1),
