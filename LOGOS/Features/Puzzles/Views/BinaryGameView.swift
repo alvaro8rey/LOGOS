@@ -10,6 +10,7 @@ import SwiftUI
 struct BinaryGameView: View {
     @StateObject var viewModel: BinaryPuzzleViewModel
     @Environment(\.dismiss) var dismiss
+    @State private var showingInstructions = false
 
     var body: some View {
         ZStack {
@@ -33,6 +34,15 @@ struct BinaryGameView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    showingInstructions = true
+                } label: {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundColor(.logosPrimary)
+                }
+            }
+
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     dismiss()
@@ -41,6 +51,9 @@ struct BinaryGameView: View {
                         .foregroundColor(.logosTextSecondary)
                 }
             }
+        }
+        .sheet(isPresented: $showingInstructions) {
+            instructionsSheet
         }
         .sheet(isPresented: $viewModel.showingCompletionSheet) {
             completionSheet
@@ -201,5 +214,79 @@ struct BinaryGameView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Instructions Sheet
+    private var instructionsSheet: some View {
+        NavigationView {
+            ZStack {
+                Color.logosBackground
+                    .ignoresSafeArea()
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        VStack(spacing: 12) {
+                            Image(systemName: "01.circle.fill")
+                                .font(.system(size: 60))
+                                .foregroundStyle(Color.primaryGradient)
+
+                            Text("Cómo Jugar Binary")
+                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                                .foregroundColor(.logosTextPrimary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 20)
+
+                        VStack(alignment: .leading, spacing: 16) {
+                            instructionItem(
+                                title: "Objetivo",
+                                description: "Llena la cuadrícula con 0s y 1s siguiendo las reglas del puzzle."
+                            )
+
+                            instructionItem(
+                                title: "Reglas",
+                                description: "• Cada fila y columna debe tener la misma cantidad de 0s y 1s\n• No puede haber más de dos 0s o 1s consecutivos en una fila o columna\n• No pueden existir dos filas o columnas idénticas\n• Algunas celdas están ya rellenadas como pistas"
+                            )
+
+                            instructionItem(
+                                title: "Cómo Jugar",
+                                description: "1. Toca una celda vacía para colocar un 0\n2. Vuelve a tocar para cambiar a 1\n3. Toca una tercera vez para vaciar la celda\n4. Las celdas iniciales (más brillantes) no se pueden modificar"
+                            )
+
+                            instructionItem(
+                                title: "Estrategia",
+                                description: "• Busca filas o columnas que ya tengan dos valores consecutivos\n• Si una fila/columna tiene el número máximo de 0s o 1s, completa el resto\n• Las celdas entre dos valores iguales deben ser del valor opuesto\n• Compara filas similares para evitar duplicados"
+                            )
+                        }
+                        .padding(.horizontal)
+                    }
+                    .padding()
+                }
+            }
+            .navigationTitle("Instrucciones")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cerrar") {
+                        showingInstructions = false
+                    }
+                }
+            }
+        }
+    }
+
+    private func instructionItem(title: String, description: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundColor(.logosPrimary)
+
+            Text(description)
+                .font(.system(size: 15, weight: .regular))
+                .foregroundColor(.logosTextSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .liquidGlass()
     }
 }

@@ -18,9 +18,9 @@ import Combine
 
 @MainActor
 class PuzzleViewModel: ObservableObject {
-    
+
     // MARK: - Published Properties
-    @Published var puzzleEngine: ConstraintPuzzleEngine
+    @ObservedObject var puzzleEngine: ConstraintPuzzleEngine
     @Published var showingHintSheet = false
     @Published var selectedHint: Hint?
     @Published var showingCompletionSheet = false

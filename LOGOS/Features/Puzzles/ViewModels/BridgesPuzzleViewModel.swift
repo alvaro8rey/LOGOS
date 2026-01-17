@@ -12,7 +12,7 @@ import Combine
 class BridgesPuzzleViewModel: ObservableObject {
 
     // MARK: - Published Properties
-    @Published var puzzleEngine: BridgesPuzzleEngine
+    @ObservedObject var puzzleEngine: BridgesPuzzleEngine
     @Published var showingCompletionSheet = false
 
     // MARK: - Properties

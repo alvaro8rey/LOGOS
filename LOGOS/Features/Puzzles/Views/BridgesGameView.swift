@@ -10,6 +10,7 @@ import SwiftUI
 struct BridgesGameView: View {
     @StateObject var viewModel: BridgesPuzzleViewModel
     @Environment(\.dismiss) var dismiss
+    @State private var showingInstructions = false
 
     var body: some View {
         ZStack {
@@ -36,14 +37,17 @@ struct BridgesGameView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
+            ToolbarItem(placement: .navigationBarLeading) {
                 Button {
-                    dismiss()
+                    showingInstructions = true
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.logosTextSecondary)
+                    Image(systemName: "info.circle.fill")
+                        .foregroundColor(.logosPrimary)
                 }
             }
+        }
+        .sheet(isPresented: $showingInstructions) {
+            instructionsSheet
         }
         .sheet(isPresented: $viewModel.showingCompletionSheet) {
             completionSheet
@@ -292,6 +296,80 @@ struct BridgesGameView: View {
                 .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundColor(.logosTextPrimary)
         }
+    }
+
+    // MARK: - Instructions Sheet
+    private var instructionsSheet: some View {
+        NavigationView {
+            ZStack {
+                Color.logosBackground
+                    .ignoresSafeArea()
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        VStack(spacing: 12) {
+                            Image(systemName: "point.topleft.down.curvedto.point.bottomright.up")
+                                .font(.system(size: 60))
+                                .foregroundStyle(Color.primaryGradient)
+
+                            Text("Cómo Jugar Bridges")
+                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                                .foregroundColor(.logosTextPrimary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 20)
+
+                        VStack(alignment: .leading, spacing: 16) {
+                            instructionItem(
+                                title: "Objetivo",
+                                description: "Conecta todas las islas con puentes siguiendo las reglas del número en cada isla."
+                            )
+
+                            instructionItem(
+                                title: "Reglas",
+                                description: "• Cada isla muestra un número (1-8) que indica cuántos puentes deben conectarse a ella\n• Puedes colocar 1 o 2 puentes entre dos islas\n• Los puentes solo pueden ser horizontales o verticales\n• Los puentes NO pueden cruzarse\n• Todas las islas deben estar conectadas al final"
+                            )
+
+                            instructionItem(
+                                title: "Cómo Jugar",
+                                description: "1. Toca una isla para seleccionarla (se marca con borde azul)\n2. Toca otra isla alineada (horizontal o vertical) para crear un puente\n3. Vuelve a tocar para cambiar de puente simple (1) a doble (2)\n4. Toca una tercera vez para eliminar el puente"
+                            )
+
+                            instructionItem(
+                                title: "Estrategia",
+                                description: "• Empieza con islas que tienen números grandes (6-8)\n• Las islas con 1 o 2 suelen ser fáciles de resolver primero\n• Asegúrate de que todas las islas queden conectadas"
+                            )
+                        }
+                        .padding(.horizontal)
+                    }
+                    .padding()
+                }
+            }
+            .navigationTitle("Instrucciones")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cerrar") {
+                        showingInstructions = false
+                    }
+                }
+            }
+        }
+    }
+
+    private func instructionItem(title: String, description: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundColor(.logosPrimary)
+
+            Text(description)
+                .font(.system(size: 15, weight: .regular))
+                .foregroundColor(.logosTextSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .liquidGlass()
     }
 }
 

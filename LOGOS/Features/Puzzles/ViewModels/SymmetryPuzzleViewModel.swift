@@ -8,7 +8,7 @@ import Combine
 
 @MainActor
 class SymmetryPuzzleViewModel: ObservableObject {
-    @Published var puzzleEngine: SymmetryPuzzleEngine
+    @ObservedObject var puzzleEngine: SymmetryPuzzleEngine
     @Published var showingCompletionSheet = false
 
     let puzzleType: UserProgress.PuzzleType

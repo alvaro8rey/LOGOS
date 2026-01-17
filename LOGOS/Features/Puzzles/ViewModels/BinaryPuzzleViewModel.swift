@@ -12,7 +12,7 @@ import Combine
 class BinaryPuzzleViewModel: ObservableObject {
 
     // MARK: - Published Properties
-    @Published var puzzleEngine: BinaryPuzzleEngine
+    @ObservedObject var puzzleEngine: BinaryPuzzleEngine
     @Published var showingCompletionSheet = false
 
     // MARK: - Properties
