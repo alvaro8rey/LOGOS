@@ -2,7 +2,7 @@
 //  SymmetryPuzzle.swift
 //  LOGOS
 //
-//  Puzzle de Simetría: Completar patrones simétricos
+//  Puzzle de Simetría: REDISEÑADO para patrones siempre visibles
 //
 
 import Foundation
@@ -55,24 +55,27 @@ struct SymmetryPuzzle: Codable {
         let types: [SymmetryType] = [.vertical, .horizontal, .diagonal, .rotational]
         self.symmetryType = types[random.next(max: types.count)]
 
-        // Generar patrón base con MEJOR DENSIDAD
+        // Generar patrón con GARANTÍA de visibilidad
         var pattern = Array(repeating: Array(repeating: false, count: gridSize), count: gridSize)
 
-        // Aumentar densidad base para que siempre haya patrón visible
-        let patternDensity = 0.15 + (Double(difficulty) * 0.03)  // Más conservador
-        let cellsToFill = max(Int(Double(gridSize * gridSize / 4) * patternDensity), 3)  // Mínimo 3 celdas
+        // Mínimo 4 celdas + extras basadas en dificultad
+        let baseCells = 4
+        let extraCells = difficulty * 2
+        let totalCells = baseCells + extraCells
 
-        // Generar patrón en la mitad del tablero
-        var filledCount = 0
-        var attempts = 0
-        while filledCount < cellsToFill && attempts < cellsToFill * 3 {
-            let row = random.next(max: gridSize / 2)
-            let col = random.next(max: gridSize / 2)
-            if !pattern[row][col] {
-                pattern[row][col] = true
-                filledCount += 1
+        // Usar shuffle de posiciones (sin while loop)
+        var positions: [(Int, Int)] = []
+        for row in 0..<(gridSize / 2) {
+            for col in 0..<(gridSize / 2) {
+                positions.append((row, col))
             }
-            attempts += 1
+        }
+        positions.shuffle(using: &random)
+
+        // Tomar las primeras N posiciones
+        for i in 0..<min(totalCells, positions.count) {
+            let (row, col) = positions[i]
+            pattern[row][col] = true
         }
 
         // Aplicar simetría
@@ -158,5 +161,26 @@ struct SymmetryPuzzle: Codable {
             }
         }
         return true
+    }
+}
+
+// MARK: - Seeded Random Generator
+struct SeededRandomGenerator: RandomNumberGenerator {
+    private var state: UInt64
+
+    init(seed: String) {
+        var hasher = Hasher()
+        hasher.combine(seed)
+        self.state = UInt64(truncatingIfNeeded: hasher.finalize())
+    }
+
+    mutating func next() -> UInt64 {
+        state = state &* 6364136223846793005 &+ 1
+        return state
+    }
+
+    mutating func next(max: Int) -> Int {
+        guard max > 0 else { return 0 }
+        return Int(next() % UInt64(max))
     }
 }
