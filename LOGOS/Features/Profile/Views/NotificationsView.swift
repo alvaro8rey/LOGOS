@@ -67,9 +67,15 @@ struct NotificationsView: View {
         VStack(spacing: 16) {
             HStack(spacing: 16) {
                 ZStack {
-                    Circle()
-                        .fill(notificationsEnabled ? Color.primaryGradient : Color.logosTextTertiary.opacity(0.3))
-                        .frame(width: 60, height: 60)
+                    if notificationsEnabled {
+                        Circle()
+                            .fill(Color.primaryGradient)
+                            .frame(width: 60, height: 60)
+                    } else {
+                        Circle()
+                            .fill(Color.logosTextTertiary.opacity(0.3))
+                            .frame(width: 60, height: 60)
+                    }
 
                     Image(systemName: notificationsEnabled ? "bell.fill" : "bell.slash.fill")
                         .font(.system(size: 28))
