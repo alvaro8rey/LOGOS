@@ -66,7 +66,8 @@ struct BridgesPuzzle: Codable {
         var islands: [Island] = []
 
         // Crear posiciones de islas espaciadas uniformemente
-        let spacing = max(2, gridSize / (islandCount / 2))
+        // Asegurar que spacing sea razonable y no cause divisiones por cero
+        let spacing = max(2, min(gridSize / 3, gridSize / max(islandCount / 2, 1)))
         var usedPositions = Set<String>()
 
         // Generar islas en posiciones de grid
@@ -174,6 +175,8 @@ struct SeededRandomGenerator: RandomNumberGenerator {
     }
 
     mutating func next(max: Int) -> Int {
+        // Validar para evitar división por cero
+        guard max > 0 else { return 0 }
         return Int(next() % UInt64(max))
     }
 }
