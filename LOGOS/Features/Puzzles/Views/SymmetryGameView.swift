@@ -115,6 +115,13 @@ struct SymmetryGameView: View {
                 .fill(cellColor(for: state, isInitial: isInitial))
                 .frame(width: size, height: size)
 
+            // Borde más grueso para celdas iniciales
+            if isInitial {
+                Rectangle()
+                    .stroke(Color.logosPrimary.opacity(0.4), lineWidth: 2)
+                    .frame(width: size, height: size)
+            }
+
             if state == .marked {
                 Image(systemName: "xmark")
                     .font(.system(size: size * 0.4, weight: .bold))
@@ -131,7 +138,9 @@ struct SymmetryGameView: View {
 
     private func cellColor(for state: SymmetryPuzzle.CellState, isInitial: Bool) -> Color {
         if isInitial {
-            return state == .filled ? Color.logosPrimary.opacity(0.9) : Color.logosCard.opacity(0.5)
+            // Celdas iniciales SIEMPRE claramente visibles
+            // Rellenas: azul brillante, Vacías: gris visible con borde
+            return state == .filled ? Color.logosPrimary.opacity(0.9) : Color.logosTextTertiary.opacity(0.2)
         }
 
         switch state {

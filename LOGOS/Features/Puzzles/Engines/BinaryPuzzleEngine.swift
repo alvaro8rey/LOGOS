@@ -84,7 +84,21 @@ class BinaryPuzzleEngine: ObservableObject {
     private func checkCompletion() {
         guard let puzzle = currentPuzzle else { return }
 
-        if puzzle.isSolved(with: userGrid) {
+        // Optimización: Solo verificar si NO hay celdas vacías
+        // Esto evita verificar en cada cambio cuando el grid no está completo
+        var hasEmptyCells = false
+        for row in userGrid {
+            for cell in row {
+                if cell == .empty {
+                    hasEmptyCells = true
+                    break
+                }
+            }
+            if hasEmptyCells { break }
+        }
+
+        // Solo verificar solución completa si NO hay celdas vacías
+        if !hasEmptyCells && puzzle.isSolved(with: userGrid) {
             isCompleted = true
             if let start = startTime {
                 elapsedTime = Date().timeIntervalSince(start)

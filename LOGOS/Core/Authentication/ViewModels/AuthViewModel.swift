@@ -172,15 +172,9 @@ class AuthViewModel: ObservableObject {
         )
         self.user = newUser
 
-        // Intentar sincronizar con Supabase de forma opcional (sin bloquear si falla)
-        Task.detached(priority: .background) {
-            do {
-                try await self.supabaseService.upsertUser(newUser)
-                print("✅ Usuario sincronizado con Supabase")
-            } catch {
-                print("⚠️ No se pudo sincronizar con Supabase (opcional): \(error.localizedDescription)")
-            }
-        }
+        // Sincronizar usuario PRIMERO (bloqueante) antes que cualquier otro dato
+        // Esto previene errores de foreign key en puzzle_history
+        await syncService.syncUser(newUser)
     }
     
     // MARK: - Update User Data

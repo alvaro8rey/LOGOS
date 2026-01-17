@@ -60,24 +60,33 @@ struct BridgesPuzzle: Codable {
         default: self.gridSize = 15
         }
 
-        // Generar islas
+        // Generar islas ALINEADAS en filas y columnas
         var random = SeededRandomGenerator(seed: seed)
         let islandCount = 5 + (difficulty * 2)
         var islands: [Island] = []
+
+        // Crear conjunto de filas y columnas para alinear islas
+        var usedPositions = Set<String>()
 
         for _ in 0..<islandCount {
             var row: Int
             var col: Int
             var attempts = 0
+            var positionKey: String
 
             repeat {
                 row = random.next(max: gridSize)
                 col = random.next(max: gridSize)
+                positionKey = "\(row),\(col)"
                 attempts += 1
-            } while islands.contains(where: { $0.row == row && $0.col == col }) && attempts < 100
+            } while usedPositions.contains(positionKey) && attempts < 100
 
             if attempts < 100 {
-                let bridges = random.next(max: 6) + 1
+                usedPositions.insert(positionKey)
+
+                // Asignar puentes basado en cuántas conexiones son posibles
+                // Empezar con 2-4 puentes (más razonable que 1-7)
+                let bridges = (random.next(max: 3) + 2)  // 2-4 puentes
                 islands.append(Island(row: row, col: col, requiredBridges: bridges))
             }
         }
