@@ -3,9 +3,11 @@
 //  LOGOS
 //
 //  Motor de puzzles de Grafos: Bridges
+//  ACTUALIZADO: Mejor reactividad para actualizar colores
 //
 
 import Foundation
+import Combine
 
 @MainActor
 class BridgesPuzzleEngine: ObservableObject {
@@ -16,6 +18,7 @@ class BridgesPuzzleEngine: ObservableObject {
     @Published var isCompleted = false
     @Published var availableHints: [Hint] = []
     @Published var usedHintsCount = 0
+    @Published var refreshTrigger = UUID()  // Para forzar refresh de UI
 
     // MARK: - Private Properties
     private var startTime: Date?
@@ -38,6 +41,7 @@ class BridgesPuzzleEngine: ObservableObject {
         self.usedHintsCount = 0
         self.startTime = Date()
         self.elapsedTime = 0
+        self.refreshTrigger = UUID()
 
         generateHints()
 
@@ -54,8 +58,6 @@ class BridgesPuzzleEngine: ObservableObject {
         let isVertical = fromIsland.col == toIsland.col
 
         guard isHorizontal || isVertical else { return }
-
-        objectWillChange.send()
 
         // Buscar puente existente
         if let index = bridges.firstIndex(where: {
@@ -86,6 +88,10 @@ class BridgesPuzzleEngine: ObservableObject {
                 isHorizontal: isHorizontal
             ))
         }
+
+        // Forzar actualización de UI
+        refreshTrigger = UUID()
+        objectWillChange.send()
 
         checkCompletion()
     }
@@ -149,6 +155,7 @@ class BridgesPuzzleEngine: ObservableObject {
         usedHintsCount = 0
         startTime = Date()
         elapsedTime = 0
+        refreshTrigger = UUID()
     }
 
     // MARK: - Get Bridge Count for Island

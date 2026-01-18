@@ -3,7 +3,7 @@
 //  LOGOS
 //
 //  Puzzle de Simetría: COMPLETAMENTE REDISEÑADO
-//  Patrones SIEMPRE visibles y validación correcta
+//  Patrones SIEMPRE visibles y complejidad escalable por dificultad
 //
 
 import Foundation
@@ -43,6 +43,7 @@ struct SymmetryPuzzle: Codable {
         self.seed = seed
         self.difficulty = difficulty
 
+        // Tamaño escalable según dificultad
         switch difficulty {
         case 1: self.gridSize = 8
         case 2: self.gridSize = 10
@@ -56,7 +57,7 @@ struct SymmetryPuzzle: Codable {
         let types: [SymmetryType] = [.vertical, .horizontal]  // Solo estas por ahora
         self.symmetryType = types[random.next(max: types.count)]
 
-        // Generar MITAD del patrón
+        // Generar MITAD del patrón con complejidad según dificultad
         let halfPattern = SymmetryPuzzle.generateHalfPattern(
             gridSize: gridSize,
             difficulty: difficulty,
@@ -79,7 +80,7 @@ struct SymmetryPuzzle: Codable {
         )
     }
 
-    // MARK: - Generate Half Pattern
+    // MARK: - Generate Half Pattern (MEJORADO CON COMPLEJIDAD)
     static func generateHalfPattern(
         gridSize: Int,
         difficulty: Int,
@@ -89,10 +90,26 @@ struct SymmetryPuzzle: Codable {
 
         var pattern = Array(repeating: Array(repeating: false, count: gridSize), count: gridSize)
 
-        // Calcular número de celdas a llenar (solo en la mitad)
-        let baseCount = 6  // Mínimo garantizado visible
-        let difficultyExtra = difficulty * 3
-        let totalCells = baseCount + difficultyExtra
+        // Complejidad escalable: más celdas = más difícil
+        let baseCount = 8  // Mínimo visible
+        let difficultyMultiplier = 4  // Más agresivo
+        let totalCells = baseCount + (difficulty * difficultyMultiplier)
+
+        // Calcular área disponible según tipo de simetría
+        let availableArea: Int
+        switch type {
+        case .vertical:
+            availableArea = gridSize * (gridSize / 2)
+        case .horizontal:
+            availableArea = (gridSize / 2) * gridSize
+        case .diagonal:
+            availableArea = (gridSize * (gridSize + 1)) / 2
+        case .rotational:
+            availableArea = (gridSize / 2) * (gridSize / 2)
+        }
+
+        // Ajustar totalCells para no exceder área disponible
+        let adjustedTotal = min(totalCells, availableArea / 2)
 
         // Generar posiciones según tipo de simetría
         var positions: [(Int, Int)] = []
@@ -131,19 +148,119 @@ struct SymmetryPuzzle: Codable {
             }
         }
 
-        // Mezclar y seleccionar
-        positions.shuffle(using: &random)
-        let selectedCount = min(totalCells, positions.count)
+        // Crear PATRONES más complejos basados en dificultad
+        if difficulty >= 3 {
+            // Dificultad alta: Patrones geométricos
+            pattern = generateGeometricPattern(gridSize: gridSize, type: type, random: &random)
+        } else if difficulty == 2 {
+            // Dificultad media: Patrones semi-aleatorios con clustering
+            positions.shuffle(using: &random)
+            var filledCount = 0
+            for (row, col) in positions {
+                if filledCount >= adjustedTotal { break }
+                pattern[row][col] = true
 
-        for i in 0..<selectedCount {
-            let (row, col) = positions[i]
-            pattern[row][col] = true
+                // 40% probabilidad de llenar vecinos (clustering)
+                if random.next(max: 100) < 40 && filledCount < adjustedTotal - 1 {
+                    let neighbors = getNeighbors(row: row, col: col, gridSize: gridSize, type: type)
+                    if let (nRow, nCol) = neighbors.randomElement(using: &random), !pattern[nRow][nCol] {
+                        pattern[nRow][nCol] = true
+                        filledCount += 1
+                    }
+                }
+                filledCount += 1
+            }
+        } else {
+            // Dificultad baja: Aleatorio simple
+            positions.shuffle(using: &random)
+            for i in 0..<min(adjustedTotal, positions.count) {
+                let (row, col) = positions[i]
+                pattern[row][col] = true
+            }
         }
 
         return pattern
     }
 
-    // MARK: - Apply Symmetry (CORREGIDO)
+    // MARK: - Generate Geometric Pattern
+    static func generateGeometricPattern(
+        gridSize: Int,
+        type: SymmetryType,
+        random: inout SeededRandomGenerator
+    ) -> [[Bool]] {
+        var pattern = Array(repeating: Array(repeating: false, count: gridSize), count: gridSize)
+
+        let patternType = random.next(max: 3)
+
+        switch patternType {
+        case 0:
+            // Diagonal lines
+            for row in 0..<gridSize {
+                for col in 0..<gridSize {
+                    if (row + col) % 3 == 0 && shouldFillForSymmetry(row: row, col: col, gridSize: gridSize, type: type) {
+                        pattern[row][col] = true
+                    }
+                }
+            }
+        case 1:
+            // Concentric squares
+            let center = gridSize / 2
+            for row in 0..<gridSize {
+                for col in 0..<gridSize {
+                    let distance = max(abs(row - center), abs(col - center))
+                    if distance % 2 == 0 && shouldFillForSymmetry(row: row, col: col, gridSize: gridSize, type: type) {
+                        pattern[row][col] = true
+                    }
+                }
+            }
+        default:
+            // Checkerboard variant
+            for row in 0..<gridSize {
+                for col in 0..<gridSize {
+                    if (row % 2 == col % 2) && shouldFillForSymmetry(row: row, col: col, gridSize: gridSize, type: type) {
+                        pattern[row][col] = true
+                    }
+                }
+            }
+        }
+
+        return pattern
+    }
+
+    // MARK: - Helper: Should Fill For Symmetry
+    static func shouldFillForSymmetry(row: Int, col: Int, gridSize: Int, type: SymmetryType) -> Bool {
+        switch type {
+        case .vertical:
+            return col < gridSize / 2
+        case .horizontal:
+            return row < gridSize / 2
+        case .diagonal:
+            return row >= col
+        case .rotational:
+            return row < gridSize / 2 && col < gridSize / 2
+        }
+    }
+
+    // MARK: - Helper: Get Neighbors
+    static func getNeighbors(row: Int, col: Int, gridSize: Int, type: SymmetryType) -> [(Int, Int)] {
+        var neighbors: [(Int, Int)] = []
+        let directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+
+        for (dr, dc) in directions {
+            let newRow = row + dr
+            let newCol = col + dc
+
+            if newRow >= 0 && newRow < gridSize && newCol >= 0 && newCol < gridSize {
+                if shouldFillForSymmetry(row: newRow, col: newCol, gridSize: gridSize, type: type) {
+                    neighbors.append((newRow, newCol))
+                }
+            }
+        }
+
+        return neighbors
+    }
+
+    // MARK: - Apply Symmetry
     static func applySymmetry(
         halfPattern: [[Bool]],
         type: SymmetryType,
