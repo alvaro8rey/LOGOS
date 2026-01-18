@@ -48,71 +48,68 @@ class MathPuzzleViewModel: ObservableObject {
         puzzleEngine.$isCompleted
             .sink { [weak self] isCompleted in
                 if isCompleted {
-                    self?.handleCompletion()
+                    self?.handlePuzzleCompletion()
                 }
             }
             .store(in: &cancellables)
     }
 
-    // MARK: - Handle Completion
-    private func handleCompletion() {
-        showingCompletionSheet = true
+    // MARK: - Handle Puzzle Completion
+    private func handlePuzzleCompletion() {
+        guard let puzzle = puzzleEngine.currentPuzzle else { return }
 
-        Task {
-            await saveProgress()
-        }
-    }
-
-    // MARK: - Save Progress
-    private func saveProgress() async {
-        let isSolved = puzzleEngine.isCompleted
-        let timeSpent = puzzleEngine.getElapsedTime()
-        let hintsUsed = puzzleEngine.usedHintsCount
+        let elapsedTime = puzzleEngine.getElapsedTime()
 
         let history = PuzzleHistory(
             userId: userId,
             puzzleType: puzzleType,
+            seed: puzzle.seed,
             difficulty: difficulty,
-            isSolved: isSolved,
-            timeSpent: timeSpent,
-            hintsUsed: hintsUsed,
-            completedAt: Date()
+            timeSpent: elapsedTime,
+            hintsUsed: puzzleEngine.usedHintsCount,
+            isSolved: true
         )
 
-        // Guardar en local
-        syncService.savePuzzleHistory(history)
+        syncService.saveHistory(history)
+        updateProgress(timeSpent: elapsedTime)
 
-        // Actualizar progreso
-        let currentProgress = syncService.getProgress(for: userId, puzzleType: puzzleType)
+        showingCompletionSheet = true
 
-        let newCompletedCount = currentProgress.completedCount + 1
-        let newBestTime: Double
-        if let existingBest = currentProgress.bestTime {
-            newBestTime = min(existingBest, timeSpent)
-        } else {
-            newBestTime = timeSpent
-        }
-
-        let newProgress = UserProgress(
-            id: currentProgress.id,
-            userId: userId,
-            puzzleType: puzzleType,
-            completedCount: newCompletedCount,
-            currentDifficulty: difficulty,
-            bestTime: newBestTime,
-            totalHintsUsed: currentProgress.totalHintsUsed + hintsUsed,
-            lastPlayedAt: Date(),
-            updatedAt: Date()
-        )
-
-        syncService.updateProgress(newProgress)
-
-        print("✅ Math puzzle progreso guardado: \(newCompletedCount) completados")
+        print("🎉 Math puzzle completado y guardado")
     }
 
-    // MARK: - Generate New Puzzle
+    // MARK: - Update Progress
+    private func updateProgress(timeSpent: TimeInterval) {
+        var progress = syncService.getLocalProgress(userId: userId, puzzleType: puzzleType)
+            ?? UserProgress(userId: userId, puzzleType: puzzleType)
+
+        progress.completedCount += 1
+        progress.lastPlayedAt = Date()
+        progress.totalHintsUsed += puzzleEngine.usedHintsCount
+
+        if let bestTime = progress.bestTime {
+            progress.bestTime = min(bestTime, timeSpent)
+        } else {
+            progress.bestTime = timeSpent
+        }
+
+        if progress.completedCount % 5 == 0 {
+            progress.currentDifficulty = min(progress.currentDifficulty + 1, 5)
+        }
+
+        progress.updatedAt = Date()
+
+        syncService.saveProgress(progress)
+
+        print("✅ Progreso actualizado: \(progress.completedCount) completados")
+    }
+
+    // MARK: - New Puzzle
     func generateNewPuzzle() {
+        let progress = syncService.getLocalProgress(userId: userId, puzzleType: puzzleType)
+        let currentDifficulty = progress?.currentDifficulty ?? difficulty
+
+        puzzleEngine.generatePuzzle(difficulty: currentDifficulty)
         showingCompletionSheet = false
-        puzzleEngine.generatePuzzle(difficulty: difficulty)
     }
 }
