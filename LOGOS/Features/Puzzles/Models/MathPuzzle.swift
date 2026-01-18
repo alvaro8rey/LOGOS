@@ -84,12 +84,15 @@ struct MathPuzzle: Codable {
 
         // Más jaulas para dificultad alta
         let targetCages = gridSize * 2 + difficulty
+        var failedAttempts = 0
+        let maxFailedAttempts = 100
 
-        while cages.count < targetCages {
+        while cages.count < targetCages && failedAttempts < maxFailedAttempts {
             let row = random.next(max: gridSize)
             let col = random.next(max: gridSize)
 
             if !used[row][col] {
+                failedAttempts = 0  // Reset on success
                 var cells = [(row, col)]
                 used[row][col] = true
 
@@ -151,6 +154,8 @@ struct MathPuzzle: Codable {
                 }
 
                 cages.append(Cage(cells: cells, target: target, operation: operation))
+            } else {
+                failedAttempts += 1
             }
         }
 
