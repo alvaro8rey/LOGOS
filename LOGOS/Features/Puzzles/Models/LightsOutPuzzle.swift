@@ -13,7 +13,12 @@ struct LightsOutPuzzle: Codable {
     let difficulty: Int
     let gridSize: Int
     let initialState: [[Bool]]
-    let solution: [(row: Int, col: Int)]
+    let solution: [Move]
+
+    struct Move: Codable {
+        let row: Int
+        let col: Int
+    }
 
     init(seed: String, difficulty: Int) {
         self.seed = seed
@@ -39,13 +44,13 @@ struct LightsOutPuzzle: Codable {
     static func generatePuzzle(
         gridSize: Int,
         random: inout SeededRandomGenerator
-    ) -> (initialState: [[Bool]], solution: [(row: Int, col: Int)]) {
+    ) -> (initialState: [[Bool]], solution: [Move]) {
 
         // Empezar con todas las luces apagadas
         var grid = Array(repeating: Array(repeating: false, count: gridSize), count: gridSize)
 
         // Generar una solución (secuencia de movimientos)
-        var solution: [(row: Int, col: Int)] = []
+        var solution: [Move] = []
 
         // Número de movimientos según dificultad
         let moveCount = random.next(max: gridSize * 2) + gridSize
@@ -54,7 +59,7 @@ struct LightsOutPuzzle: Codable {
             let row = random.next(max: gridSize)
             let col = random.next(max: gridSize)
 
-            solution.append((row, col))
+            solution.append(Move(row: row, col: col))
 
             // Aplicar el toggle
             toggleLight(grid: &grid, row: row, col: col, gridSize: gridSize)
