@@ -15,7 +15,9 @@ class SudokuPuzzleEngine: ObservableObject {
     @Published var userGrid: [[Int]] = []
     @Published var isCompleted = false
     @Published var usedHintsCount = 0
+    @Published var hintsAvailable = 1  // Solo 1 pista gratuita
     @Published var refreshTrigger = UUID()
+    @Published var showingBuyHintsSheet = false
 
     // MARK: - Private Properties
     private var startTime: Date?
@@ -34,6 +36,7 @@ class SudokuPuzzleEngine: ObservableObject {
         self.userGrid = puzzle.initialGrid
         self.isCompleted = false
         self.usedHintsCount = 0
+        self.hintsAvailable = 1  // Resetear a 1 pista gratuita
         self.startTime = Date()
         self.refreshTrigger = UUID()
     }
@@ -76,6 +79,12 @@ class SudokuPuzzleEngine: ObservableObject {
 
     // MARK: - Use Hint
     func useHint() {
+        // Verificar si hay pistas disponibles
+        if hintsAvailable <= 0 {
+            showingBuyHintsSheet = true
+            return
+        }
+
         guard let puzzle = currentPuzzle else { return }
 
         // Buscar una celda vacía que no sea inicial
@@ -85,6 +94,7 @@ class SudokuPuzzleEngine: ObservableObject {
                     // Revelar el número correcto
                     userGrid[row][col] = puzzle.solution[row][col]
                     usedHintsCount += 1
+                    hintsAvailable -= 1  // Decrementar pistas disponibles
                     refreshTrigger = UUID()
                     objectWillChange.send()
                     checkCompletion()

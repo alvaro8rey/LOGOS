@@ -60,6 +60,9 @@ struct SudokuGameView: View {
         .sheet(isPresented: $viewModel.showingCompletionSheet) {
             completionSheet
         }
+        .sheet(isPresented: $viewModel.puzzleEngine.showingBuyHintsSheet) {
+            buyHintsSheet
+        }
     }
 
     // MARK: - Header
@@ -260,11 +263,12 @@ struct SudokuGameView: View {
             } label: {
                 HStack {
                     Image(systemName: "lightbulb.fill")
-                    Text("Pista")
+                    Text("Pista (\(viewModel.puzzleEngine.hintsAvailable))")
                 }
                 .frame(maxWidth: .infinity)
             }
             .liquidButton()
+            .opacity(viewModel.puzzleEngine.hintsAvailable > 0 ? 1 : 0.5)
         }
     }
 
@@ -424,6 +428,85 @@ struct SudokuGameView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Cerrar") {
                         showingInstructions = false
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Buy Hints Sheet
+    private var buyHintsSheet: some View {
+        NavigationView {
+            ZStack {
+                Color.logosBackground
+                    .ignoresSafeArea()
+
+                VStack(spacing: 30) {
+                    Spacer()
+
+                    Image(systemName: "lightbulb.slash.fill")
+                        .font(.system(size: 80))
+                        .foregroundColor(.logosWarning)
+
+                    VStack(spacing: 12) {
+                        Text("Sin Pistas")
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundColor(.logosTextPrimary)
+
+                        Text("Has usado tu pista gratuita para este puzzle")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.logosTextSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 30)
+                    }
+
+                    VStack(spacing: 16) {
+                        VStack(spacing: 8) {
+                            Text("💡 Paquete de 5 Pistas")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.logosTextPrimary)
+
+                            Text("$0.99")
+                                .font(.system(size: 32, weight: .bold, design: .rounded))
+                                .foregroundStyle(Color.accentGradient)
+                        }
+                        .padding(20)
+                        .frame(maxWidth: .infinity)
+                        .liquidGlass()
+                        .padding(.horizontal, 30)
+
+                        Button {
+                            // TODO: Implementar compra IAP
+                            print("🛒 Comprar pistas - IAP no implementado aún")
+                            viewModel.puzzleEngine.showingBuyHintsSheet = false
+                        } label: {
+                            Text("Comprar Pistas")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .liquidButton()
+                        .padding(.horizontal, 30)
+
+                        Button {
+                            viewModel.puzzleEngine.showingBuyHintsSheet = false
+                        } label: {
+                            Text("Continuar sin Pistas")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.logosTextSecondary)
+                        }
+                        .padding(.top, 8)
+                    }
+
+                    Spacer()
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        viewModel.puzzleEngine.showingBuyHintsSheet = false
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.logosTextTertiary)
                     }
                 }
             }

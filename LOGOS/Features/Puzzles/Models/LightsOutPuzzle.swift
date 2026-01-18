@@ -33,8 +33,14 @@ struct LightsOutPuzzle: Codable {
         default: self.gridSize = 7  // EXTREMADAMENTE DIFÍCIL
         }
 
-        var random = SeededRandomGenerator(seed: seed)
-        let result = LightsOutPuzzle.generatePuzzle(gridSize: gridSize, random: &random)
+        // Usar seed + difficulty para generar un número único
+        var hasher = Hasher()
+        hasher.combine(seed)
+        hasher.combine(difficulty)
+        let uniqueSeed = String(hasher.finalize())
+
+        var random = SeededRandomGenerator(seed: uniqueSeed)
+        let result = LightsOutPuzzle.generatePuzzle(gridSize: gridSize, difficulty: difficulty, random: &random)
 
         self.initialState = result.initialState
         self.solution = result.solution
@@ -43,26 +49,60 @@ struct LightsOutPuzzle: Codable {
     // MARK: - Generate Puzzle
     static func generatePuzzle(
         gridSize: Int,
+        difficulty: Int,
         random: inout SeededRandomGenerator
     ) -> (initialState: [[Bool]], solution: [Move]) {
 
         // Empezar con todas las luces apagadas
         var grid = Array(repeating: Array(repeating: false, count: gridSize), count: gridSize)
 
-        // Generar una solución (secuencia de movimientos)
+        // Generar una solución (lista única de celdas a presionar)
         var solution: [Move] = []
+        var usedPositions = Set<String>()
 
-        // Número de movimientos según dificultad
-        let moveCount = random.next(max: gridSize * 2) + gridSize
+        // Número mínimo de movimientos según dificultad (garantiza dificultad real)
+        let minMoves: Int
+        switch difficulty {
+        case 1: minMoves = 3
+        case 2: minMoves = 5
+        case 3: minMoves = 7
+        case 4: minMoves = 10
+        default: minMoves = 15  // Nivel 5 - MUY difícil
+        }
 
-        for _ in 0..<moveCount {
+        // Generar movimientos únicos (sin repetir posición)
+        var attempts = 0
+        while solution.count < minMoves && attempts < 1000 {
             let row = random.next(max: gridSize)
             let col = random.next(max: gridSize)
+            let key = "\(row),\(col)"
 
-            solution.append(Move(row: row, col: col))
+            if !usedPositions.contains(key) {
+                usedPositions.insert(key)
+                solution.append(Move(row: row, col: col))
 
-            // Aplicar el toggle
-            toggleLight(grid: &grid, row: row, col: col, gridSize: gridSize)
+                // Aplicar el toggle
+                toggleLight(grid: &grid, row: row, col: col, gridSize: gridSize)
+            }
+
+            attempts += 1
+        }
+
+        // Si quedan muy pocas luces encendidas, agregar más complejidad
+        let lightsOn = grid.flatMap { $0 }.filter { $0 }.count
+        if lightsOn < gridSize {
+            // Agregar movimientos adicionales para complejidad
+            for _ in 0..<2 {
+                let row = random.next(max: gridSize)
+                let col = random.next(max: gridSize)
+                let key = "\(row),\(col)"
+
+                if !usedPositions.contains(key) {
+                    usedPositions.insert(key)
+                    solution.append(Move(row: row, col: col))
+                    toggleLight(grid: &grid, row: row, col: col, gridSize: gridSize)
+                }
+            }
         }
 
         return (initialState: grid, solution: solution)
