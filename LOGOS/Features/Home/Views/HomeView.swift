@@ -469,9 +469,9 @@ struct PuzzleGameRouter: View {
                 )
             )
         case .graphs:
-            // Bridges puzzle - IMPLEMENTADO
-            BridgesGameView(
-                viewModel: BridgesPuzzleViewModel(
+            // Lights Out puzzle - IMPLEMENTADO (EXTREMADAMENTE DIFÍCIL)
+            LightsOutGameView(
+                viewModel: LightsOutViewModel(
                     puzzleType: puzzleType,
                     difficulty: difficulty,
                     userId: userId
