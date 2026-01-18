@@ -2,8 +2,8 @@
 //  MathPuzzle.swift
 //  LOGOS
 //
-//  Puzzle Matemático: Similar a KenKen/Calcudoku
-//  Completa todas las celdas siguiendo las reglas matemáticas
+//  Puzzle Matemático REDISEÑADO: KenKen Simplificado
+//  Solo necesitas cumplir las operaciones de cada jaula
 //
 
 import Foundation
@@ -15,7 +15,7 @@ struct MathPuzzle: Codable {
     let solution: [[Int]]
     let cages: [Cage]
 
-    struct CellPosition: Equatable, Codable {
+    struct CellPosition: Equatable, Codable, Hashable {
         let row: Int
         let col: Int
     }
@@ -31,7 +31,7 @@ struct MathPuzzle: Codable {
             case subtract = "-"
             case multiply = "×"
             case divide = "÷"
-            case none = ""
+            case none = "="
 
             var symbol: String { return self.rawValue }
 
@@ -41,7 +41,7 @@ struct MathPuzzle: Codable {
                 case .subtract: return "Resta"
                 case .multiply: return "Multiplicación"
                 case .divide: return "División"
-                case .none: return "Valor"
+                case .none: return "Igual"
                 }
             }
         }
@@ -63,146 +63,230 @@ struct MathPuzzle: Codable {
         case 1: self.gridSize = 4
         case 2: self.gridSize = 5
         case 3: self.gridSize = 6
-        case 4: self.gridSize = 6
-        default: self.gridSize = 7
+        case 4: self.gridSize = 7
+        default: self.gridSize = 8
         }
 
-        // Generar solución válida (sudoku simplificado)
+        var random = SeededRandomGenerator(seed: seed)
+
+        // Generar solución válida (Latin Square - cada fila y columna sin repetir)
         var solution = Array(repeating: Array(repeating: 0, count: gridSize), count: gridSize)
+
+        // Método mejorado: shuffle de primera fila, luego rotar
+        var firstRow = Array(1...gridSize)
+        firstRow.shuffle(using: &random)
+
         for row in 0..<gridSize {
             for col in 0..<gridSize {
-                solution[row][col] = ((row + col) % gridSize) + 1
+                solution[row][col] = firstRow[(col + row) % gridSize]
             }
         }
 
         self.solution = solution
 
-        // Generar jaulas
-        var random = SeededRandomGenerator(seed: seed)
+        // Generar jaulas con algoritmo mejorado
+        let result = MathPuzzle.generateCages(
+            solution: solution,
+            gridSize: gridSize,
+            difficulty: difficulty,
+            random: &random
+        )
+
+        self.cages = result
+    }
+
+    // MARK: - Generate Cages (ALGORITMO MEJORADO)
+    static func generateCages(
+        solution: [[Int]],
+        gridSize: Int,
+        difficulty: Int,
+        random: inout SeededRandomGenerator
+    ) -> [Cage] {
+
         var cages: [Cage] = []
-        var used = Array(repeating: Array(repeating: false, count: gridSize), count: gridSize)
+        var used = Set<CellPosition>()
 
-        // Más jaulas para dificultad alta
-        let targetCages = gridSize * 2 + difficulty
-        var failedAttempts = 0
-        let maxFailedAttempts = 100
+        // Estrategia: crear jaulas de diferentes tamaños
+        // Más dificultad = jaulas más grandes
+        let maxCageSize: Int
+        switch difficulty {
+        case 1: maxCageSize = 2  // Solo pares
+        case 2: maxCageSize = 2  // Pares y algunos triples
+        case 3: maxCageSize = 3  // Hasta 3 celdas
+        case 4: maxCageSize = 4  // Hasta 4 celdas
+        default: maxCageSize = 5 // Hasta 5 celdas - MUY difícil
+        }
 
-        while cages.count < targetCages && failedAttempts < maxFailedAttempts {
-            let row = random.next(max: gridSize)
-            let col = random.next(max: gridSize)
+        // Llenar todo el grid con jaulas
+        while used.count < gridSize * gridSize {
+            // Encontrar una celda no usada
+            var startRow = -1
+            var startCol = -1
 
-            if !used[row][col] {
-                failedAttempts = 0  // Reset on success
-                var cells = [(row, col)]
-                used[row][col] = true
-
-                // Intentar agregar más celdas según dificultad
-                let maxCellsInCage = difficulty >= 3 ? 3 : 2
-                var attempts = 0
-
-                while cells.count < maxCellsInCage && attempts < 4 {
-                    let lastCell = cells.last!
-                    let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
-
-                    if let (dr, dc) = directions.randomElement(using: &random) {
-                        let newRow = lastCell.0 + dr
-                        let newCol = lastCell.1 + dc
-
-                        if newRow >= 0 && newRow < gridSize &&
-                           newCol >= 0 && newCol < gridSize &&
-                           !used[newRow][newCol] {
-                            cells.append((newRow, newCol))
-                            used[newRow][newCol] = true
-                        }
+            for row in 0..<gridSize {
+                for col in 0..<gridSize {
+                    let pos = CellPosition(row: row, col: col)
+                    if !used.contains(pos) {
+                        startRow = row
+                        startCol = col
+                        break
                     }
+                }
+                if startRow != -1 { break }
+            }
 
+            guard startRow != -1 else { break }
+
+            // Decidir tamaño de jaula (70% pequeñas, 30% grandes)
+            let targetSize: Int
+            if random.next(max: 100) < 70 {
+                targetSize = random.next(max: 2) + 1  // 1-2 celdas
+            } else {
+                targetSize = random.next(max: maxCageSize - 1) + 2  // 2 a maxCageSize
+            }
+
+            // Construir jaula usando flood fill limitado
+            var cageCells: [(Int, Int)] = [(startRow, startCol)]
+            var visited = Set<CellPosition>()
+            visited.insert(CellPosition(row: startRow, col: startCol))
+
+            // Expandir jaula
+            var attempts = 0
+            while cageCells.count < targetSize && attempts < 20 {
+                // Elegir una celda al azar de las actuales
+                guard let baseCell = cageCells.randomElement(using: &random) else { break }
+
+                // Intentar agregar vecino
+                let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+                directions.shuffle(using: &random)
+
+                var added = false
+                for (dr, dc) in directions {
+                    let newRow = baseCell.0 + dr
+                    let newCol = baseCell.1 + dc
+                    let newPos = CellPosition(row: newRow, col: newCol)
+
+                    if newRow >= 0 && newRow < gridSize &&
+                       newCol >= 0 && newCol < gridSize &&
+                       !used.contains(newPos) &&
+                       !visited.contains(newPos) {
+                        cageCells.append((newRow, newCol))
+                        visited.insert(newPos)
+                        added = true
+                        break
+                    }
+                }
+
+                if !added {
                     attempts += 1
                 }
+            }
 
-                let values = cells.map { solution[$0.0][$0.1] }
-                let target: Int
-                let operation: Cage.Operation
+            // Marcar celdas como usadas
+            for cell in cageCells {
+                used.insert(CellPosition(row: cell.0, col: cell.1))
+            }
 
-                if cells.count == 1 {
-                    // Celda individual
-                    target = values[0]
-                    operation = .none
-                } else {
-                    // Operación para múltiples celdas
-                    var ops: [Cage.Operation] = [.add, .multiply]
+            // Calcular operación y target
+            let values = cageCells.map { solution[$0.0][$0.1] }
+            let (target, operation) = calculateOperation(
+                values: values,
+                difficulty: difficulty,
+                random: &random
+            )
 
-                    // Agregar resta y división para dificultad alta
-                    if difficulty >= 3 && cells.count == 2 {
-                        ops.append(contentsOf: [.subtract, .divide])
-                    }
+            cages.append(Cage(cells: cageCells, target: target, operation: operation))
+        }
 
-                    operation = ops[random.next(max: ops.count)]
+        return cages
+    }
 
-                    switch operation {
-                    case .add:
-                        target = values.reduce(0, +)
-                    case .multiply:
-                        target = values.reduce(1, *)
-                    case .subtract:
-                        target = abs(values[0] - values[1])
-                    case .divide:
-                        let sorted = values.sorted(by: >)
-                        target = sorted[0] / (sorted[1] == 0 ? 1 : sorted[1])
-                    case .none:
-                        target = values[0]
-                    }
-                }
+    // MARK: - Calculate Operation
+    static func calculateOperation(
+        values: [Int],
+        difficulty: Int,
+        random: inout SeededRandomGenerator
+    ) -> (target: Int, operation: Cage.Operation) {
 
-                cages.append(Cage(cells: cells, target: target, operation: operation))
-            } else {
-                failedAttempts += 1
+        if values.count == 1 {
+            return (values[0], .none)
+        }
+
+        // Operaciones disponibles según dificultad
+        var availableOps: [Cage.Operation] = [.add, .multiply]
+
+        if difficulty >= 2 && values.count == 2 {
+            availableOps.append(.subtract)
+        }
+
+        if difficulty >= 3 && values.count == 2 {
+            // División solo si es exacta
+            let sorted = values.sorted(by: >)
+            if sorted[0] % sorted[1] == 0 {
+                availableOps.append(.divide)
             }
         }
 
-        self.cages = cages
+        let operation = availableOps[random.next(max: availableOps.count)]
+
+        let target: Int
+        switch operation {
+        case .add:
+            target = values.reduce(0, +)
+        case .multiply:
+            target = values.reduce(1, *)
+        case .subtract:
+            let sorted = values.sorted(by: >)
+            target = sorted[0] - sorted[1]
+        case .divide:
+            let sorted = values.sorted(by: >)
+            target = sorted[0] / sorted[1]
+        case .none:
+            target = values[0]
+        }
+
+        return (target, operation)
     }
 
+    // MARK: - Validation
     func isValid() -> Bool {
-        return gridSize >= 4
+        return gridSize >= 4 && !cages.isEmpty
     }
 
     func isSolved(with userGrid: [[Int]]) -> Bool {
-        // Verificar que todas las celdas estén llenas
+        // 1. Verificar que todas las celdas estén llenas
         for row in 0..<gridSize {
             for col in 0..<gridSize {
                 if userGrid[row][col] == 0 {
                     return false
                 }
+
+                // Verificar rango válido
+                if userGrid[row][col] < 1 || userGrid[row][col] > gridSize {
+                    return false
+                }
             }
         }
 
-        // Verificar que cada fila tenga números únicos (1 a gridSize)
+        // 2. Verificar que cada fila tenga números únicos
         for row in 0..<gridSize {
             let rowValues = userGrid[row]
             if Set(rowValues).count != gridSize {
                 return false
             }
-            if rowValues.min() != 1 || rowValues.max() != gridSize {
-                return false
-            }
         }
 
-        // Verificar que cada columna tenga números únicos (1 a gridSize)
+        // 3. Verificar que cada columna tenga números únicos
         for col in 0..<gridSize {
             let colValues = (0..<gridSize).map { userGrid[$0][col] }
             if Set(colValues).count != gridSize {
                 return false
             }
-            if colValues.min() != 1 || colValues.max() != gridSize {
-                return false
-            }
         }
 
-        // Verificar jaulas
+        // 4. Verificar jaulas
         for cage in cages {
             let values = cage.cells.map { userGrid[$0.row][$0.col] }
-
-            if values.contains(0) { return false }
 
             let result: Int
             switch cage.operation {
@@ -211,10 +295,11 @@ struct MathPuzzle: Codable {
             case .multiply:
                 result = values.reduce(1, *)
             case .subtract:
-                result = abs(values[0] - values[1])
+                let sorted = values.sorted(by: >)
+                result = sorted[0] - sorted[1]
             case .divide:
                 let sorted = values.sorted(by: >)
-                result = sorted[0] / (sorted[1] == 0 ? 1 : sorted[1])
+                result = sorted[1] == 0 ? 0 : sorted[0] / sorted[1]
             case .none:
                 result = values[0]
             }
@@ -238,5 +323,28 @@ struct MathPuzzle: Codable {
     func isFirstCellInCage(row: Int, col: Int) -> Bool {
         guard let cage = getCage(for: row, col: col) else { return false }
         return cage.cells.first?.row == row && cage.cells.first?.col == col
+    }
+
+    // MARK: - Helper: Check if number conflicts
+    func hasConflict(in userGrid: [[Int]], row: Int, col: Int) -> Bool {
+        let value = userGrid[row][col]
+
+        guard value > 0 else { return false }
+
+        // Verificar fila
+        for c in 0..<gridSize {
+            if c != col && userGrid[row][c] == value {
+                return true
+            }
+        }
+
+        // Verificar columna
+        for r in 0..<gridSize {
+            if r != row && userGrid[r][col] == value {
+                return true
+            }
+        }
+
+        return false
     }
 }

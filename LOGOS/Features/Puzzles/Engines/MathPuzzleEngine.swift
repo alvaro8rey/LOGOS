@@ -111,4 +111,10 @@ class MathPuzzleEngine: ObservableObject {
         startTime = Date()
         elapsedTime = 0
     }
+
+    // MARK: - Check if cell has conflict
+    func hasConflict(row: Int, col: Int) -> Bool {
+        guard let puzzle = currentPuzzle else { return false }
+        return puzzle.hasConflict(in: userGrid, row: row, col: col)
+    }
 }
