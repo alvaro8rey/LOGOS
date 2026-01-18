@@ -496,8 +496,14 @@ struct PuzzleGameRouter: View {
                 )
             )
         case .mathematical:
-            // Próximamente
-            ComingSoonPuzzleView(puzzleType: puzzleType)
+            // Math puzzle - IMPLEMENTADO
+            MathGameView(
+                viewModel: MathPuzzleViewModel(
+                    puzzleType: puzzleType,
+                    difficulty: difficulty,
+                    userId: userId
+                )
+            )
         }
     }
 }
