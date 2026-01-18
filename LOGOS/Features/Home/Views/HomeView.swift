@@ -504,6 +504,15 @@ struct PuzzleGameRouter: View {
                     userId: userId
                 )
             )
+        case .logic:
+            // Sudoku 9x9 - IMPLEMENTADO (EXTREMADAMENTE DIFÍCIL)
+            SudokuGameView(
+                viewModel: SudokuPuzzleViewModel(
+                    puzzleType: puzzleType,
+                    difficulty: difficulty,
+                    userId: userId
+                )
+            )
         }
     }
 }

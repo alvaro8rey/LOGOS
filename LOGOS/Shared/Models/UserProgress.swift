@@ -28,6 +28,7 @@ struct UserProgress: Codable, Identifiable {
         case binaryStates = "binary_states"
         case mathematical = "mathematical"
         case symmetry = "symmetry"
+        case logic = "logic"
 
         var displayName: String {
             switch self {
@@ -36,6 +37,7 @@ struct UserProgress: Codable, Identifiable {
             case .binaryStates: return "Estados Binarios"
             case .mathematical: return "Matemático"
             case .symmetry: return "Simetría"
+            case .logic: return "Lógica Pura"
             }
         }
 
@@ -46,6 +48,7 @@ struct UserProgress: Codable, Identifiable {
             case .binaryStates: return "circle.hexagongrid"
             case .mathematical: return "function"
             case .symmetry: return "square.split.diagonal"
+            case .logic: return "square.grid.3x3.fill"
             }
         }
     }
