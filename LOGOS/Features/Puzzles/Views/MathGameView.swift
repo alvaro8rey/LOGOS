@@ -107,7 +107,7 @@ struct MathGameView: View {
     // MARK: - Cell View
     private func cellView(row: Int, col: Int, puzzle: MathPuzzle, cellSize: CGFloat) -> some View {
         let userValue = viewModel.puzzleEngine.userGrid[row][col]
-        let cage = puzzle.getCage(for: row, col)
+        let cage = puzzle.getCage(for: row, col: col)
         let isSelected = selectedCell?.row == row && selectedCell?.col == col
         let isFirstInCage = puzzle.isFirstCellInCage(row: row, col: col)
 
@@ -142,7 +142,7 @@ struct MathGameView: View {
 
     // MARK: - Get Cage Border Color
     private func getCageBorderColor(row: Int, col: Int, puzzle: MathPuzzle) -> Color {
-        guard let cage = puzzle.getCage(for: row, col) else {
+        guard let cage = puzzle.getCage(for: row, col: col) else {
             return Color.logosTextTertiary.opacity(0.3)
         }
 

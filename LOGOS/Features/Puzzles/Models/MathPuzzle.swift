@@ -231,7 +231,7 @@ struct MathPuzzle: Codable {
 
     // MARK: - Helper: Is cell first in cage
     func isFirstCellInCage(row: Int, col: Int) -> Bool {
-        guard let cage = getCage(for: row, col) else { return false }
+        guard let cage = getCage(for: row, col: col) else { return false }
         return cage.cells.first?.row == row && cage.cells.first?.col == col
     }
 }
