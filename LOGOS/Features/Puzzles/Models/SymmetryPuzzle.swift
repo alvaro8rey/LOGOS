@@ -2,7 +2,8 @@
 //  SymmetryPuzzle.swift
 //  LOGOS
 //
-//  Puzzle de Simetría: REDISEÑADO para patrones siempre visibles
+//  Puzzle de Simetría: COMPLETAMENTE REDISEÑADO
+//  Patrones SIEMPRE visibles y validación correcta
 //
 
 import Foundation
@@ -12,7 +13,7 @@ struct SymmetryPuzzle: Codable {
     let difficulty: Int
     let gridSize: Int
     let solution: [[Bool]]  // true = filled, false = empty
-    let initialPattern: [[Bool?]]  // nil = vacío, debe ser completado
+    let initialPattern: [[Bool?]]  // nil = debe completarse, true/false = pista
     let symmetryType: SymmetryType
 
     enum SymmetryType: String, Codable {
@@ -52,39 +53,156 @@ struct SymmetryPuzzle: Codable {
 
         // Tipo de simetría aleatorio
         var random = SeededRandomGenerator(seed: seed)
-        let types: [SymmetryType] = [.vertical, .horizontal, .diagonal, .rotational]
+        let types: [SymmetryType] = [.vertical, .horizontal]  // Solo estas por ahora
         self.symmetryType = types[random.next(max: types.count)]
 
-        // Generar patrón con GARANTÍA de visibilidad
+        // Generar MITAD del patrón
+        let halfPattern = SymmetryPuzzle.generateHalfPattern(
+            gridSize: gridSize,
+            difficulty: difficulty,
+            type: symmetryType,
+            random: &random
+        )
+
+        // Aplicar simetría para crear el patrón completo
+        self.solution = SymmetryPuzzle.applySymmetry(
+            halfPattern: halfPattern,
+            type: symmetryType,
+            gridSize: gridSize
+        )
+
+        // Generar patrón inicial (revelar la mitad)
+        self.initialPattern = SymmetryPuzzle.generateInitialPattern(
+            solution: solution,
+            type: symmetryType,
+            gridSize: gridSize
+        )
+    }
+
+    // MARK: - Generate Half Pattern
+    static func generateHalfPattern(
+        gridSize: Int,
+        difficulty: Int,
+        type: SymmetryType,
+        random: inout SeededRandomGenerator
+    ) -> [[Bool]] {
+
         var pattern = Array(repeating: Array(repeating: false, count: gridSize), count: gridSize)
 
-        // Mínimo 4 celdas + extras basadas en dificultad
-        let baseCells = 4
-        let extraCells = difficulty * 2
-        let totalCells = baseCells + extraCells
+        // Calcular número de celdas a llenar (solo en la mitad)
+        let baseCount = 6  // Mínimo garantizado visible
+        let difficultyExtra = difficulty * 3
+        let totalCells = baseCount + difficultyExtra
 
-        // Usar shuffle de posiciones (sin while loop)
+        // Generar posiciones según tipo de simetría
         var positions: [(Int, Int)] = []
-        for row in 0..<(gridSize / 2) {
-            for col in 0..<(gridSize / 2) {
-                positions.append((row, col))
+
+        switch type {
+        case .vertical:
+            // Solo mitad izquierda
+            for row in 0..<gridSize {
+                for col in 0..<(gridSize / 2) {
+                    positions.append((row, col))
+                }
+            }
+
+        case .horizontal:
+            // Solo mitad superior
+            for row in 0..<(gridSize / 2) {
+                for col in 0..<gridSize {
+                    positions.append((row, col))
+                }
+            }
+
+        case .diagonal:
+            // Solo triángulo superior izquierdo
+            for row in 0..<gridSize {
+                for col in 0...row {
+                    positions.append((row, col))
+                }
+            }
+
+        case .rotational:
+            // Solo primer cuadrante + líneas centrales
+            for row in 0..<(gridSize / 2) {
+                for col in 0..<(gridSize / 2) {
+                    positions.append((row, col))
+                }
             }
         }
-        positions.shuffle(using: &random)
 
-        // Tomar las primeras N posiciones
-        for i in 0..<min(totalCells, positions.count) {
+        // Mezclar y seleccionar
+        positions.shuffle(using: &random)
+        let selectedCount = min(totalCells, positions.count)
+
+        for i in 0..<selectedCount {
             let (row, col) = positions[i]
             pattern[row][col] = true
         }
 
-        // Aplicar simetría
-        self.solution = SymmetryPuzzle.applySymmetry(to: pattern, type: symmetryType)
+        return pattern
+    }
 
-        // Generar patrón inicial (mitad revelada)
+    // MARK: - Apply Symmetry (CORREGIDO)
+    static func applySymmetry(
+        halfPattern: [[Bool]],
+        type: SymmetryType,
+        gridSize: Int
+    ) -> [[Bool]] {
+
+        var result = halfPattern
+
+        switch type {
+        case .vertical:
+            // Reflejar horizontalmente (eje vertical en el centro)
+            for row in 0..<gridSize {
+                for col in 0..<(gridSize / 2) {
+                    let mirrorCol = gridSize - 1 - col
+                    result[row][mirrorCol] = halfPattern[row][col]
+                }
+            }
+
+        case .horizontal:
+            // Reflejar verticalmente (eje horizontal en el centro)
+            for row in 0..<(gridSize / 2) {
+                for col in 0..<gridSize {
+                    let mirrorRow = gridSize - 1 - row
+                    result[mirrorRow][col] = halfPattern[row][col]
+                }
+            }
+
+        case .diagonal:
+            // Reflejar sobre diagonal principal
+            for row in 0..<gridSize {
+                for col in 0...row {
+                    result[col][row] = halfPattern[row][col]
+                }
+            }
+
+        case .rotational:
+            // Rotar 180 grados
+            for row in 0..<gridSize {
+                for col in 0..<gridSize {
+                    let mirrorRow = gridSize - 1 - row
+                    let mirrorCol = gridSize - 1 - col
+                    result[mirrorRow][mirrorCol] = halfPattern[row][col]
+                }
+            }
+        }
+
+        return result
+    }
+
+    // MARK: - Generate Initial Pattern
+    static func generateInitialPattern(
+        solution: [[Bool]],
+        type: SymmetryType,
+        gridSize: Int
+    ) -> [[Bool?]] {
+
         var initialPattern = Array(repeating: Array(repeating: Bool?.none, count: gridSize), count: gridSize)
 
-        switch symmetryType {
+        switch type {
         case .vertical:
             // Revelar mitad izquierda
             for row in 0..<gridSize {
@@ -92,6 +210,7 @@ struct SymmetryPuzzle: Codable {
                     initialPattern[row][col] = solution[row][col]
                 }
             }
+
         case .horizontal:
             // Revelar mitad superior
             for row in 0..<(gridSize / 2) {
@@ -99,7 +218,16 @@ struct SymmetryPuzzle: Codable {
                     initialPattern[row][col] = solution[row][col]
                 }
             }
-        case .diagonal, .rotational:
+
+        case .diagonal:
+            // Revelar triángulo superior izquierdo
+            for row in 0..<gridSize {
+                for col in 0...min(row, gridSize - 1) {
+                    initialPattern[row][col] = solution[row][col]
+                }
+            }
+
+        case .rotational:
             // Revelar cuadrante superior izquierdo
             for row in 0..<(gridSize / 2) {
                 for col in 0..<(gridSize / 2) {
@@ -108,42 +236,7 @@ struct SymmetryPuzzle: Codable {
             }
         }
 
-        self.initialPattern = initialPattern
-    }
-
-    // MARK: - Apply Symmetry
-    static func applySymmetry(to pattern: [[Bool]], type: SymmetryType) -> [[Bool]] {
-        let size = pattern.count
-        var result = pattern
-
-        switch type {
-        case .vertical:
-            for row in 0..<size {
-                for col in 0..<size {
-                    result[row][size - 1 - col] = pattern[row][col]
-                }
-            }
-        case .horizontal:
-            for row in 0..<size {
-                for col in 0..<size {
-                    result[size - 1 - row][col] = pattern[row][col]
-                }
-            }
-        case .diagonal:
-            for row in 0..<size {
-                for col in 0..<size {
-                    result[col][row] = pattern[row][col]
-                }
-            }
-        case .rotational:
-            for row in 0..<size {
-                for col in 0..<size {
-                    result[size - 1 - row][size - 1 - col] = pattern[row][col]
-                }
-            }
-        }
-
-        return result
+        return initialPattern
     }
 
     // MARK: - Validation
@@ -152,14 +245,50 @@ struct SymmetryPuzzle: Codable {
     }
 
     func isSolved(with userGrid: [[CellState]]) -> Bool {
+        // Solo verificar las celdas que el usuario debe completar (initialPattern = nil)
         for row in 0..<gridSize {
             for col in 0..<gridSize {
+                // Si es celda inicial (pista), ignorar
+                if initialPattern[row][col] != nil {
+                    continue
+                }
+
+                // Verificar celda del usuario
                 let userFilled = userGrid[row][col] == .filled
-                if userFilled != solution[row][col] {
+                let solutionFilled = solution[row][col]
+
+                if userFilled != solutionFilled {
                     return false
                 }
             }
         }
+
         return true
+    }
+
+    // MARK: - Helper: Get hint positions
+    func getHintPositions() -> [(Int, Int)] {
+        var hints: [(Int, Int)] = []
+        for row in 0..<gridSize {
+            for col in 0..<gridSize {
+                if initialPattern[row][col] != nil {
+                    hints.append((row, col))
+                }
+            }
+        }
+        return hints
+    }
+
+    // MARK: - Helper: Get cells to complete
+    func getCellsToComplete() -> [(Int, Int)] {
+        var cells: [(Int, Int)] = []
+        for row in 0..<gridSize {
+            for col in 0..<gridSize {
+                if initialPattern[row][col] == nil {
+                    cells.append((row, col))
+                }
+            }
+        }
+        return cells
     }
 }

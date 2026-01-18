@@ -3,7 +3,7 @@
 //  LOGOS
 //
 //  Puzzle de Grafos: Bridges (Hashiwokakero)
-//  REDISEÑADO con algoritmo de generación real y garantizado resolvible
+//  COMPLETAMENTE REDISEÑADO - Generación basada en grid alineado
 //
 
 import Foundation
@@ -13,6 +13,7 @@ struct BridgesPuzzle: Codable {
     let difficulty: Int
     let gridSize: Int
     let islands: [Island]
+    let solution: [Bridge]  // Solución válida
 
     // MARK: - Island
     struct Island: Codable, Identifiable {
@@ -51,7 +52,7 @@ struct BridgesPuzzle: Codable {
         self.seed = seed
         self.difficulty = difficulty
 
-        // Tamaño según dificultad (siempre impar para centrar islas)
+        // Tamaño según dificultad
         switch difficulty {
         case 1: self.gridSize = 7
         case 2: self.gridSize = 9
@@ -59,70 +60,177 @@ struct BridgesPuzzle: Codable {
         default: self.gridSize = 13
         }
 
-        // Generar islas usando algoritmo mejorado
+        // Generar puzzle completo con solución
         var random = SeededRandomGenerator(seed: seed)
-        self.islands = BridgesPuzzle.generateIslands(
+        let result = BridgesPuzzle.generatePuzzle(
             gridSize: gridSize,
             difficulty: difficulty,
             random: &random
         )
+
+        self.islands = result.islands
+        self.solution = result.solution
     }
 
-    // MARK: - Generate Islands (Algoritmo Mejorado)
-    static func generateIslands(gridSize: Int, difficulty: Int, random: inout SeededRandomGenerator) -> [Island] {
-        var islands: [Island] = []
-        let islandCount = 5 + difficulty
+    // MARK: - Generate Puzzle (NUEVO ALGORITMO)
+    static func generatePuzzle(
+        gridSize: Int,
+        difficulty: Int,
+        random: inout SeededRandomGenerator
+    ) -> (islands: [Island], solution: [Bridge]) {
 
-        // Dividir grid en regiones para garantizar distribución
-        let regionSize = 3
-        let regions = gridSize / regionSize
+        // Crear grid de posiciones válidas (solo posiciones pares para alineación)
+        let step = 2
+        var gridPositions: [(Int, Int)] = []
+        for row in stride(from: 1, to: gridSize - 1, by: step) {
+            for col in stride(from: 1, to: gridSize - 1, by: step) {
+                gridPositions.append((row, col))
+            }
+        }
 
-        for regionRow in 0..<regions {
-            for regionCol in 0..<regions {
-                // 40% probabilidad de isla en esta región
-                if random.next(max: 100) < 40 && islands.count < islandCount {
-                    // Posición dentro de la región
-                    let row = regionRow * regionSize + random.next(max: regionSize)
-                    let col = regionCol * regionSize + random.next(max: regionSize)
+        // Número de islas basado en dificultad
+        let islandCount = min(4 + difficulty, gridPositions.count)
 
-                    // Asegurar que no está en el borde
-                    let finalRow = max(1, min(row, gridSize - 2))
-                    let finalCol = max(1, min(col, gridSize - 2))
+        // Seleccionar posiciones aleatorias
+        gridPositions.shuffle(using: &random)
+        let selectedPositions = Array(gridPositions.prefix(islandCount))
 
-                    // Verificar que no hay isla muy cercana
-                    let tooClose = islands.contains { island in
-                        abs(island.row - finalRow) <= 1 && abs(island.col - finalCol) <= 1
-                    }
+        // Crear islas temporales (sin requiredBridges aún)
+        var tempIslands: [Island] = []
+        for (row, col) in selectedPositions {
+            tempIslands.append(Island(row: row, col: col, requiredBridges: 0))
+        }
 
-                    if !tooClose {
-                        // Número de puentes: 2-4 (más razonable)
-                        let bridges = random.next(max: 3) + 2
-                        islands.append(Island(row: finalRow, col: finalCol, requiredBridges: bridges))
-                    }
+        // Generar conexiones válidas y calcular requiredBridges
+        var bridges: [Bridge] = []
+        var bridgeCounts: [String: Int] = [:]  // Contar puentes por isla
+
+        // Crear diccionario de islas por posición
+        var islandsByPosition: [[String?]] = Array(
+            repeating: Array(repeating: nil, count: gridSize),
+            count: gridSize
+        )
+        for island in tempIslands {
+            islandsByPosition[island.row][island.col] = island.id
+        }
+
+        // Para cada isla, buscar vecinos horizontales y verticales
+        for island in tempIslands {
+            // Buscar vecino horizontal (derecha)
+            var rightNeighbor: Island? = nil
+            for col in (island.col + 1)..<gridSize {
+                if let neighborId = islandsByPosition[island.row][col] {
+                    rightNeighbor = tempIslands.first { $0.id == neighborId }
+                    break
+                }
+            }
+
+            // Buscar vecino vertical (abajo)
+            var downNeighbor: Island? = nil
+            for row in (island.row + 1)..<gridSize {
+                if let neighborId = islandsByPosition[row][island.col] {
+                    downNeighbor = tempIslands.first { $0.id == neighborId }
+                    break
+                }
+            }
+
+            // Crear puentes con vecinos (50% probabilidad de 1 o 2 puentes)
+            if let neighbor = rightNeighbor, random.next(max: 100) < 70 {
+                let count = random.next(max: 2) + 1  // 1 o 2
+                bridges.append(Bridge(
+                    from: island.id,
+                    to: neighbor.id,
+                    count: count,
+                    isHorizontal: true
+                ))
+                bridgeCounts[island.id, default: 0] += count
+                bridgeCounts[neighbor.id, default: 0] += count
+            }
+
+            if let neighbor = downNeighbor, random.next(max: 100) < 70 {
+                let count = random.next(max: 2) + 1  // 1 o 2
+                bridges.append(Bridge(
+                    from: island.id,
+                    to: neighbor.id,
+                    count: count,
+                    isHorizontal: false
+                ))
+                bridgeCounts[island.id, default: 0] += count
+                bridgeCounts[neighbor.id, default: 0] += count
+            }
+        }
+
+        // Asegurar que todas las islas tengan al menos 1 puente
+        for island in tempIslands {
+            if bridgeCounts[island.id] == nil || bridgeCounts[island.id] == 0 {
+                // Buscar cualquier vecino y conectar
+                if let neighbor = findAnyNeighbor(for: island, in: tempIslands, islandsByPosition: islandsByPosition, gridSize: gridSize) {
+                    let isHorizontal = island.row == neighbor.row
+                    bridges.append(Bridge(
+                        from: island.id,
+                        to: neighbor.id,
+                        count: 1,
+                        isHorizontal: isHorizontal
+                    ))
+                    bridgeCounts[island.id, default: 0] += 1
+                    bridgeCounts[neighbor.id, default: 0] += 1
                 }
             }
         }
 
-        // Asegurar mínimo de islas
-        while islands.count < min(5, islandCount) {
-            let row = random.next(max: gridSize - 2) + 1
-            let col = random.next(max: gridSize - 2) + 1
+        // Crear islas finales con requiredBridges correcto
+        let finalIslands = tempIslands.map { tempIsland in
+            Island(
+                row: tempIsland.row,
+                col: tempIsland.col,
+                requiredBridges: max(1, bridgeCounts[tempIsland.id] ?? 1)
+            )
+        }
 
-            let tooClose = islands.contains { island in
-                abs(island.row - row) <= 1 && abs(island.col - col) <= 1
-            }
+        return (islands: finalIslands, solution: bridges)
+    }
 
-            if !tooClose {
-                islands.append(Island(row: row, col: col, requiredBridges: 2))
+    // MARK: - Helper: Find Any Neighbor
+    static func findAnyNeighbor(
+        for island: Island,
+        in islands: [Island],
+        islandsByPosition: [[String?]],
+        gridSize: Int
+    ) -> Island? {
+        // Buscar horizontal derecha
+        for col in (island.col + 1)..<gridSize {
+            if let neighborId = islandsByPosition[island.row][col] {
+                return islands.first { $0.id == neighborId }
             }
         }
 
-        return islands
+        // Buscar vertical abajo
+        for row in (island.row + 1)..<gridSize {
+            if let neighborId = islandsByPosition[row][island.col] {
+                return islands.first { $0.id == neighborId }
+            }
+        }
+
+        // Buscar horizontal izquierda
+        for col in stride(from: island.col - 1, through: 0, by: -1) {
+            if let neighborId = islandsByPosition[island.row][col] {
+                return islands.first { $0.id == neighborId }
+            }
+        }
+
+        // Buscar vertical arriba
+        for row in stride(from: island.row - 1, through: 0, by: -1) {
+            if let neighborId = islandsByPosition[row][island.col] {
+                return islands.first { $0.id == neighborId }
+            }
+        }
+
+        return nil
     }
 
     // MARK: - Validation
     func isValid() -> Bool {
-        return islands.count >= 5
+        return islands.count >= 4
     }
 
     func isSolved(with bridges: [Bridge]) -> Bool {
