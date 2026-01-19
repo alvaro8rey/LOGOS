@@ -136,21 +136,44 @@ class SupabaseService: ObservableObject {
     }
     
     // MARK: - Progress Operations
-    
+
+    // DTO para progreso (evita problemas de conversión de tipos)
+    private struct UserProgressDTO: Codable {
+        let id: String
+        let user_id: String
+        let puzzle_type: String
+        let completed_count: Int
+        let current_difficulty: Int
+        let best_time: Double?
+        let total_hints_used: Int
+        let last_played_at: String?
+        let updated_at: String
+    }
+
     /// Guardar progreso del usuario
     func upsertProgress(_ progress: UserProgress) async throws {
         guard let client = client else {
             throw SupabaseError.notConfigured
         }
-        
+
         do {
-            let progressData = progress.toSupabaseDict()
-            
+            let dto = UserProgressDTO(
+                id: progress.id,
+                user_id: progress.userId,
+                puzzle_type: progress.puzzleType.rawValue,
+                completed_count: progress.completedCount,
+                current_difficulty: progress.currentDifficulty,
+                best_time: progress.bestTime,
+                total_hints_used: progress.totalHintsUsed,
+                last_played_at: progress.lastPlayedAt.map { ISO8601DateFormatter().string(from: $0) },
+                updated_at: ISO8601DateFormatter().string(from: progress.updatedAt)
+            )
+
             try await client
                 .from("user_progress")
-                .upsert(progressData as! [String: AnyJSON])
+                .upsert(dto)
                 .execute()
-            
+
             print("✅ Progreso guardado: \(progress.puzzleType.rawValue)")
         } catch {
             print("❌ Error al guardar progreso: \(error)")
@@ -202,21 +225,33 @@ class SupabaseService: ObservableObject {
     }
     
     // MARK: - Batch Operations
-    
+
     /// Guardar múltiples progresos a la vez
     func batchUpsertProgress(_ progressList: [UserProgress]) async throws {
         guard let client = client else {
             throw SupabaseError.notConfigured
         }
-        
+
         do {
-            let progressData = progressList.map { $0.toSupabaseDict() as! [String: AnyJSON] }
-            
+            let dtos = progressList.map { progress in
+                UserProgressDTO(
+                    id: progress.id,
+                    user_id: progress.userId,
+                    puzzle_type: progress.puzzleType.rawValue,
+                    completed_count: progress.completedCount,
+                    current_difficulty: progress.currentDifficulty,
+                    best_time: progress.bestTime,
+                    total_hints_used: progress.totalHintsUsed,
+                    last_played_at: progress.lastPlayedAt.map { ISO8601DateFormatter().string(from: $0) },
+                    updated_at: ISO8601DateFormatter().string(from: progress.updatedAt)
+                )
+            }
+
             try await client
                 .from("user_progress")
-                .upsert(progressData)
+                .upsert(dtos)
                 .execute()
-            
+
             print("✅ \(progressList.count) registros de progreso guardados")
         } catch {
             print("❌ Error al guardar múltiples progresos: \(error)")

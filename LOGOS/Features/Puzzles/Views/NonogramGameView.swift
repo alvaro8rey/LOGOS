@@ -18,7 +18,8 @@ import SwiftUI
 struct NonogramGameView: View {
     @StateObject var viewModel: PuzzleViewModel
     @Environment(\.dismiss) var dismiss
-    
+    @State private var showingInstructions = false
+
     var body: some View {
         ZStack {
             Color.logosBackground
@@ -44,14 +45,17 @@ struct NonogramGameView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
+            ToolbarItem(placement: .navigationBarLeading) {
                 Button {
-                    dismiss()
+                    showingInstructions = true
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.logosTextSecondary)
+                    Image(systemName: "info.circle.fill")
+                        .foregroundColor(.logosPrimary)
                 }
             }
+        }
+        .sheet(isPresented: $showingInstructions) {
+            instructionsSheet
         }
         .sheet(isPresented: $viewModel.showingHintSheet) {
             hintSheet
@@ -140,6 +144,7 @@ struct NonogramGameView: View {
                     // Cells
                     ForEach(0..<puzzle.gridSize, id: \.self) { col in
                         cellView(row: row, col: col, size: cellSize)
+                            .id("\(row)-\(col)")  // Unique ID for each cell
                     }
                 }
             }
@@ -151,25 +156,25 @@ struct NonogramGameView: View {
     // MARK: - Cell View
     private func cellView(row: Int, col: Int, size: CGFloat) -> some View {
         let state = viewModel.puzzleEngine.userGrid[row][col]
-        
-        return Button {
-            viewModel.puzzleEngine.toggleCell(row: row, col: col)
-        } label: {
-            ZStack {
-                Rectangle()
-                    .fill(cellColor(for: state))
-                    .frame(width: size, height: size)
-                
-                Rectangle()
-                    .stroke(Color.logosTextTertiary.opacity(0.3), lineWidth: 1)
-                    .frame(width: size, height: size)
-                
-                if state == .marked {
-                    Image(systemName: "xmark")
-                        .font(.system(size: size * 0.5, weight: .bold))
-                        .foregroundColor(.logosTextSecondary)
-                }
+
+        return ZStack {
+            Rectangle()
+                .fill(cellColor(for: state))
+                .frame(width: size, height: size)
+
+            Rectangle()
+                .stroke(Color.logosTextTertiary.opacity(0.3), lineWidth: 1)
+                .frame(width: size, height: size)
+
+            if state == .marked {
+                Image(systemName: "xmark")
+                    .font(.system(size: size * 0.5, weight: .bold))
+                    .foregroundColor(.logosTextSecondary)
             }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            viewModel.puzzleEngine.toggleCell(row: row, col: col)
         }
         .disabled(viewModel.puzzleEngine.isCompleted)
     }
@@ -449,6 +454,80 @@ struct NonogramGameView: View {
                 .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundColor(.logosTextPrimary)
         }
+    }
+
+    // MARK: - Instructions Sheet
+    private var instructionsSheet: some View {
+        NavigationView {
+            ZStack {
+                Color.logosBackground
+                    .ignoresSafeArea()
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        VStack(spacing: 12) {
+                            Image(systemName: "square.grid.3x3.fill")
+                                .font(.system(size: 60))
+                                .foregroundStyle(Color.primaryGradient)
+
+                            Text("Cómo Jugar Nonogram")
+                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                                .foregroundColor(.logosTextPrimary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 20)
+
+                        VStack(alignment: .leading, spacing: 16) {
+                            instructionItem(
+                                title: "Objetivo",
+                                description: "Descubre la imagen oculta rellenando las celdas correctas según las pistas numéricas."
+                            )
+
+                            instructionItem(
+                                title: "Pistas Numéricas",
+                                description: "Los números en cada fila y columna indican cuántos grupos de celdas consecutivas deben rellenarse.\n\nEjemplo: [2, 1] significa 2 celdas juntas, luego al menos 1 espacio vacío, y después 1 celda."
+                            )
+
+                            instructionItem(
+                                title: "Cómo Marcar",
+                                description: "• Toca una celda una vez: Rellena (negro)\n• Toca dos veces: Marca con X (vacía)\n• Toca tres veces: Vuelve a vacío"
+                            )
+
+                            instructionItem(
+                                title: "Estrategia",
+                                description: "1. Comienza con las filas/columnas que tengan números grandes\n2. Si el número es igual al tamaño, rellena toda la fila/columna\n3. Marca con X las celdas que sabes que están vacías"
+                            )
+                        }
+                        .padding(.horizontal)
+                    }
+                    .padding()
+                }
+            }
+            .navigationTitle("Instrucciones")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cerrar") {
+                        showingInstructions = false
+                    }
+                }
+            }
+        }
+    }
+
+    private func instructionItem(title: String, description: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundColor(.logosPrimary)
+
+            Text(description)
+                .font(.system(size: 15, weight: .regular))
+                .foregroundColor(.logosTextSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .liquidGlass()
     }
 }
 

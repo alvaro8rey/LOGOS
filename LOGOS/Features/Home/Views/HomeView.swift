@@ -10,16 +10,14 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @StateObject private var viewModel = HomeViewModel()
-    @State private var selectedPuzzleType: UserProgress.PuzzleType?
-    @State private var showingDifficultySelector = false
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
                 // Background
                 Color.logosBackground
                     .ignoresSafeArea()
-                
+
                 if viewModel.isLoading {
                     loadingView
                 } else {
@@ -35,14 +33,6 @@ struct HomeView: View {
             }
             .refreshable {
                 await viewModel.refresh()
-            }
-            .sheet(isPresented: $showingDifficultySelector) {
-                if let puzzleType = selectedPuzzleType {
-                    DifficultySelector(
-                        puzzleType: puzzleType,
-                        currentDifficulty: viewModel.getProgress(for: puzzleType)?.currentDifficulty ?? 1
-                    )
-                }
             }
         }
     }
@@ -117,14 +107,18 @@ struct HomeView: View {
     private var puzzleTypesGrid: some View {
         VStack(spacing: 16) {
             ForEach(UserProgress.PuzzleType.allCases, id: \.self) { type in
-                PuzzleTypeCardWithProgress(
-                    puzzleType: type,
-                    progress: viewModel.getProgress(for: type)
-                )
-                .onTapGesture {
-                    selectedPuzzleType = type
-                    showingDifficultySelector = true
+                NavigationLink {
+                    DifficultySelectionView(
+                        puzzleType: type,
+                        currentDifficulty: viewModel.getProgress(for: type)?.currentDifficulty ?? 1
+                    )
+                } label: {
+                    PuzzleTypeCardWithProgress(
+                        puzzleType: type,
+                        progress: viewModel.getProgress(for: type)
+                    )
                 }
+                .buttonStyle(PlainButtonStyle())
             }
         }
     }
@@ -275,13 +269,12 @@ struct HomeView: View {
     }
 }
 
-// MARK: - Difficulty Selector Sheet
-struct DifficultySelector: View {
+// MARK: - Difficulty Selection View
+struct DifficultySelectionView: View {
     let puzzleType: UserProgress.PuzzleType
     let currentDifficulty: Int
-    @Environment(\.dismiss) var dismiss
     @EnvironmentObject var authViewModel: AuthViewModel
-    
+
     private let difficulties = [
         (level: 1, name: "Fácil", description: "Cuadrícula 5x5", icon: "1.circle.fill", color: Color.logosSuccess),
         (level: 2, name: "Medio", description: "Cuadrícula 7x7", icon: "2.circle.fill", color: Color.logosPrimary),
@@ -289,63 +282,52 @@ struct DifficultySelector: View {
         (level: 4, name: "Experto", description: "Cuadrícula 12x12", icon: "4.circle.fill", color: Color.logosError),
         (level: 5, name: "Maestro", description: "Cuadrícula 15x15", icon: "5.circle.fill", color: Color.logosAccent)
     ]
-    
+
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.logosBackground
-                    .ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(spacing: 20) {
-                        // Header
-                        VStack(spacing: 12) {
-                            Image(systemName: puzzleType.icon)
-                                .font(.system(size: 60))
-                                .foregroundStyle(Color.primaryGradient)
-                            
-                            Text(puzzleType.displayName)
-                                .font(.system(size: 28, weight: .bold, design: .rounded))
-                                .foregroundColor(.logosTextPrimary)
-                            
-                            Text("Selecciona la dificultad")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.logosTextSecondary)
-                        }
-                        .padding(.top, 20)
-                        
-                        // Difficulty cards
-                        VStack(spacing: 16) {
-                            ForEach(difficulties, id: \.level) { difficulty in
-                                difficultyCard(difficulty: difficulty)
-                            }
+        ZStack {
+            Color.logosBackground
+                .ignoresSafeArea()
+
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Header
+                    VStack(spacing: 12) {
+                        Image(systemName: puzzleType.icon)
+                            .font(.system(size: 60))
+                            .foregroundStyle(Color.primaryGradient)
+
+                        Text(puzzleType.displayName)
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundColor(.logosTextPrimary)
+
+                        Text("Selecciona la dificultad")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.logosTextSecondary)
+                    }
+                    .padding(.top, 20)
+
+                    // Difficulty cards
+                    VStack(spacing: 16) {
+                        ForEach(difficulties, id: \.level) { difficulty in
+                            difficultyCard(difficulty: difficulty)
                         }
                     }
-                    .padding()
                 }
-            }
-            .navigationTitle("Dificultad")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cerrar") {
-                        dismiss()
-                    }
-                }
+                .padding()
             }
         }
+        .navigationTitle("Dificultad")
+        .navigationBarTitleDisplayMode(.inline)
     }
     
     // MARK: - Difficulty Card
     private func difficultyCard(difficulty: (level: Int, name: String, description: String, icon: String, color: Color)) -> some View {
         NavigationLink {
             if let userId = authViewModel.user?.id {
-                NonogramGameView(
-                    viewModel: PuzzleViewModel(
-                        puzzleType: puzzleType,
-                        difficulty: difficulty.level,
-                        userId: userId
-                    )
+                PuzzleGameRouter(
+                    puzzleType: puzzleType,
+                    difficulty: difficulty.level,
+                    userId: userId
                 )
             }
         } label: {
@@ -466,6 +448,132 @@ struct PuzzleTypeCardWithProgress: View {
         }
         .padding(20)
         .liquidGlass()
+    }
+}
+
+// MARK: - Puzzle Game Router
+struct PuzzleGameRouter: View {
+    let puzzleType: UserProgress.PuzzleType
+    let difficulty: Int
+    let userId: String
+
+    var body: some View {
+        switch puzzleType {
+        case .constraints:
+            // Nonogram puzzle - IMPLEMENTADO
+            NonogramGameView(
+                viewModel: PuzzleViewModel(
+                    puzzleType: puzzleType,
+                    difficulty: difficulty,
+                    userId: userId
+                )
+            )
+        case .graphs:
+            // Lights Out puzzle - IMPLEMENTADO (EXTREMADAMENTE DIFÍCIL)
+            LightsOutGameView(
+                viewModel: LightsOutViewModel(
+                    puzzleType: puzzleType,
+                    difficulty: difficulty,
+                    userId: userId
+                )
+            )
+        case .binaryStates:
+            // Binary puzzle - IMPLEMENTADO
+            BinaryGameView(
+                viewModel: BinaryPuzzleViewModel(
+                    puzzleType: puzzleType,
+                    difficulty: difficulty,
+                    userId: userId
+                )
+            )
+        case .symmetry:
+            // Symmetry puzzle - IMPLEMENTADO
+            SymmetryGameView(
+                viewModel: SymmetryPuzzleViewModel(
+                    puzzleType: puzzleType,
+                    difficulty: difficulty,
+                    userId: userId
+                )
+            )
+        case .mathematical:
+            // Math puzzle - IMPLEMENTADO
+            MathGameView(
+                viewModel: MathPuzzleViewModel(
+                    puzzleType: puzzleType,
+                    difficulty: difficulty,
+                    userId: userId
+                )
+            )
+        case .logic:
+            // Sudoku 9x9 - IMPLEMENTADO (EXTREMADAMENTE DIFÍCIL)
+            SudokuGameView(
+                viewModel: SudokuPuzzleViewModel(
+                    puzzleType: puzzleType,
+                    difficulty: difficulty,
+                    userId: userId
+                )
+            )
+        }
+    }
+}
+
+// MARK: - Coming Soon Puzzle View
+struct ComingSoonPuzzleView: View {
+    let puzzleType: UserProgress.PuzzleType
+    @Environment(\.dismiss) var dismiss
+
+    var body: some View {
+        ZStack {
+            Color.logosBackground
+                .ignoresSafeArea()
+
+            VStack(spacing: 32) {
+                // Icon
+                Image(systemName: puzzleType.icon)
+                    .font(.system(size: 80))
+                    .foregroundStyle(Color.primaryGradient)
+
+                // Title
+                VStack(spacing: 12) {
+                    Text(puzzleType.displayName)
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .foregroundColor(.logosTextPrimary)
+
+                    Text("Próximamente")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.logosAccent)
+                }
+
+                // Description
+                Text("Este tipo de puzzle está en desarrollo.\nPronto estará disponible.")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.logosTextSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+
+                // Back button
+                Button {
+                    dismiss()
+                } label: {
+                    Text("Volver")
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.logosPrimary, Color.logosSecondary],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(16)
+                }
+                .padding(.horizontal, 40)
+                .padding(.top, 20)
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

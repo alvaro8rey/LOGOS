@@ -2,7 +2,7 @@
 //  ProfileView.swift
 //  Logos
 //
-//  Vista de perfil del usuario
+//  Vista de perfil del usuario - MEJORADA con navegación completa
 //
 
 import SwiftUI
@@ -11,27 +11,30 @@ struct ProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var showingAuthView = false
     @State private var showingDeleteAlert = false
-    
+    @State private var showingEditProfile = false
+    @State private var showingChangePassword = false
+    @State private var showingNotifications = false
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.logosBackground
                     .ignoresSafeArea()
-                
+
                 ScrollView {
                     VStack(spacing: 24) {
                         // User Header
                         userHeader
-                        
+
                         // Account Section
                         accountSection
-                        
+
                         // Settings Section
                         settingsSection
-                        
+
                         // About Section
                         aboutSection
-                        
+
                         // Danger Zone
                         if authViewModel.isAuthenticated {
                             dangerZoneSection
@@ -45,6 +48,15 @@ struct ProfileView: View {
             .sheet(isPresented: $showingAuthView) {
                 AuthView()
             }
+            .sheet(isPresented: $showingEditProfile) {
+                EditProfileView()
+            }
+            .sheet(isPresented: $showingChangePassword) {
+                ChangePasswordView()
+            }
+            .sheet(isPresented: $showingNotifications) {
+                NotificationsView()
+            }
             .alert("Eliminar Cuenta", isPresented: $showingDeleteAlert) {
                 Button("Cancelar", role: .cancel) { }
                 Button("Eliminar", role: .destructive) {
@@ -57,7 +69,7 @@ struct ProfileView: View {
             }
         }
     }
-    
+
     // MARK: - User Header
     private var userHeader: some View {
         VStack(spacing: 16) {
@@ -65,20 +77,20 @@ struct ProfileView: View {
             Image(systemName: authViewModel.isAnonymous ? "person.crop.circle.badge.questionmark" : "person.crop.circle.fill")
                 .font(.system(size: 80))
                 .foregroundStyle(Color.primaryGradient)
-            
+
             // Name and Email
             VStack(spacing: 4) {
                 Text(authViewModel.user?.displayName ?? (authViewModel.isAnonymous ? "Usuario Anónimo" : "Usuario"))
                     .font(.system(size: 24, weight: .bold, design: .rounded))
                     .foregroundColor(.logosTextPrimary)
-                
+
                 if let email = authViewModel.user?.email {
                     Text(email)
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(.logosTextSecondary)
                 }
             }
-            
+
             // Premium Badge
             if authViewModel.user?.isPremium ?? false {
                 HStack(spacing: 6) {
@@ -98,7 +110,7 @@ struct ProfileView: View {
         .padding(.vertical, 20)
         .liquidCard()
     }
-    
+
     // MARK: - Account Section
     private var accountSection: some View {
         VStack(spacing: 12) {
@@ -106,7 +118,7 @@ struct ProfileView: View {
                 .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundColor(.logosTextPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            
+
             VStack(spacing: 1) {
                 if authViewModel.isAnonymous {
                     settingRow(
@@ -122,22 +134,22 @@ struct ProfileView: View {
                         title: "Editar perfil",
                         color: .logosPrimary
                     ) {
-                        // TODO: Implement edit profile
+                        showingEditProfile = true
                     }
-                    
+
                     settingRow(
                         icon: "lock.fill",
                         title: "Cambiar contraseña",
                         color: .logosPrimary
                     ) {
-                        // TODO: Implement change password
+                        showingChangePassword = true
                     }
                 }
             }
             .liquidGlass()
         }
     }
-    
+
     // MARK: - Settings Section
     private var settingsSection: some View {
         VStack(spacing: 12) {
@@ -145,16 +157,16 @@ struct ProfileView: View {
                 .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundColor(.logosTextPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            
+
             VStack(spacing: 1) {
                 settingRow(
                     icon: "bell.fill",
                     title: "Notificaciones",
                     color: .logosAccent
                 ) {
-                    // TODO: Implement notifications
+                    showingNotifications = true
                 }
-                
+
                 settingRow(
                     icon: "speaker.wave.2.fill",
                     title: "Sonido",
@@ -162,7 +174,7 @@ struct ProfileView: View {
                 ) {
                     // TODO: Implement sound settings
                 }
-                
+
                 settingRow(
                     icon: "moon.fill",
                     title: "Tema",
@@ -174,7 +186,7 @@ struct ProfileView: View {
             .liquidGlass()
         }
     }
-    
+
     // MARK: - About Section
     private var aboutSection: some View {
         VStack(spacing: 12) {
@@ -182,7 +194,7 @@ struct ProfileView: View {
                 .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundColor(.logosTextPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            
+
             VStack(spacing: 1) {
                 settingRow(
                     icon: "info.circle.fill",
@@ -190,7 +202,7 @@ struct ProfileView: View {
                     color: .logosTextSecondary,
                     showChevron: false
                 ) { }
-                
+
                 settingRow(
                     icon: "doc.text.fill",
                     title: "Términos y condiciones",
@@ -198,7 +210,7 @@ struct ProfileView: View {
                 ) {
                     // TODO: Implement terms
                 }
-                
+
                 settingRow(
                     icon: "hand.raised.fill",
                     title: "Política de privacidad",
@@ -210,7 +222,7 @@ struct ProfileView: View {
             .liquidGlass()
         }
     }
-    
+
     // MARK: - Danger Zone
     private var dangerZoneSection: some View {
         VStack(spacing: 12) {
@@ -224,7 +236,7 @@ struct ProfileView: View {
                         authViewModel.signOut()
                     }
                 }
-                
+
                 settingRow(
                     icon: "trash.fill",
                     title: "Eliminar cuenta",
@@ -236,7 +248,7 @@ struct ProfileView: View {
             .liquidGlass()
         }
     }
-    
+
     // MARK: - Setting Row
     private func settingRow(
         icon: String,
@@ -251,13 +263,13 @@ struct ProfileView: View {
                     .font(.system(size: 18))
                     .foregroundColor(color)
                     .frame(width: 30)
-                
+
                 Text(title)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.logosTextPrimary)
-                
+
                 Spacer()
-                
+
                 if showChevron {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 14, weight: .semibold))

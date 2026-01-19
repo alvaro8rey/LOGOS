@@ -28,24 +28,27 @@ struct UserProgress: Codable, Identifiable {
         case binaryStates = "binary_states"
         case mathematical = "mathematical"
         case symmetry = "symmetry"
+        case logic = "logic"
 
         var displayName: String {
             switch self {
             case .constraints: return "Restricciones"
-            case .graphs: return "Grafos y Caminos"
+            case .graphs: return "Luces Fuera"
             case .binaryStates: return "Estados Binarios"
             case .mathematical: return "Matemático"
             case .symmetry: return "Simetría"
+            case .logic: return "Lógica Pura"
             }
         }
 
         var icon: String {
             switch self {
             case .constraints: return "square.grid.3x3"
-            case .graphs: return "point.3.connected.trianglepath.dotted"
+            case .graphs: return "lightbulb.fill"
             case .binaryStates: return "circle.hexagongrid"
             case .mathematical: return "function"
             case .symmetry: return "square.split.diagonal"
+            case .logic: return "square.grid.3x3.fill"
             }
         }
     }

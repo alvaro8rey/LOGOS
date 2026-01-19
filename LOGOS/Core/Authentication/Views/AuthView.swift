@@ -28,11 +28,8 @@ struct AuthView: View {
             )
             .ignoresSafeArea()
             
-            if viewModel.isAuthenticated && viewModel.isAnonymous {
-                // Usuario anónimo - mostrar opción de convertir cuenta
-                anonymousUserView
-            } else if viewModel.isAuthenticated {
-                // Usuario con cuenta - mostrar perfil
+            if viewModel.isAuthenticated {
+                // Usuario autenticado - mostrar perfil
                 authenticatedUserView
             } else {
                 // Sin autenticar - mostrar login/signup
@@ -284,16 +281,6 @@ struct AuthView: View {
                         .foregroundColor(.logosTextSecondary)
                 }
                 .padding(.top, 8)
-                
-                Button {
-                    Task {
-                        await viewModel.signInAnonymously()
-                    }
-                } label: {
-                    Text("Continuar sin cuenta")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.logosTextTertiary)
-                }
             }
             .padding(.horizontal, 30)
             
